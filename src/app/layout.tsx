@@ -1,12 +1,12 @@
-import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
-import '@fontsource/inter/400.css';
-import '@fontsource/inter/500.css';
-import '@fontsource/inter/700.css';
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/700.css";
 
-import ThemeRegistry from '@/components/ThemeRegistry';
-import Providers from '@/components/Providers';
-import { APP_CONFIG } from '@/config';
+import ThemeRegistry from "@/components/ThemeRegistry";
+import Providers from "@/components/Providers";
+import { APP_CONFIG } from "@/config";
 
 export const metadata: Metadata = {
   title: APP_CONFIG.app.title,

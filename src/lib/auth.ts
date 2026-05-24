@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth';
+import NextAuth from "next-auth";
 
 /**
  * Auth.js v5 configuration for the auth-squared OIDC provider.
@@ -14,21 +14,21 @@ import NextAuth from 'next-auth';
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     {
-      id: 'tcss460',
-      name: 'TCSS 460 Auth',
-      type: 'oidc',
+      id: "tcss460",
+      name: "TCSS 460 Auth",
+      type: "oidc",
       issuer: process.env.AUTH_TCSS460_ISSUER,
       clientId: process.env.AUTH_TCSS460_CLIENT_ID,
       clientSecret: process.env.AUTH_TCSS460_CLIENT_SECRET,
       authorization: {
         params: {
-          scope: 'openid profile email',
+          scope: "openid profile email",
           audience: process.env.AUTH_TCSS460_AUDIENCE,
         },
       },
-      checks: ['pkce', 'state'],
+      checks: ["pkce", "state"],
       client: {
-        token_endpoint_auth_method: 'client_secret_post',
+        token_endpoint_auth_method: "client_secret_post",
       },
     },
   ],
@@ -37,7 +37,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (account) {
         token.accessToken = account.access_token;
         token.idToken = account.id_token;
-        token.accessTokenExpires = account.expires_at ? account.expires_at * 1000 : undefined;
+        token.accessTokenExpires = account.expires_at
+          ? account.expires_at * 1000
+          : undefined;
       }
       return token;
     },
@@ -57,5 +59,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
   },
-  session: { strategy: 'jwt' },
+  session: { strategy: "jwt" },
 });

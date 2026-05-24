@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-import { CssBaseline } from '@mui/material';
-import { ThemeProvider } from '@mui/material/styles';
-import type { ReactNode } from 'react';
+import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
+import { CssBaseline } from "@mui/material";
+import { ThemeProvider } from "@mui/material/styles";
+import type { ReactNode } from "react";
 
-import { defaultTheme } from '@/theme';
+import { defaultTheme } from "@/theme";
 
 /**
  * App Router-compatible MUI provider. Wraps Emotion's cache so styles are
@@ -13,7 +13,7 @@ import { defaultTheme } from '@/theme';
  */
 export default function ThemeRegistry({ children }: { children: ReactNode }) {
   return (
-    <AppRouterCacheProvider options={{ key: 'mui', enableCssLayer: true }}>
+    <AppRouterCacheProvider options={{ key: "mui", enableCssLayer: true }}>
       <ThemeProvider theme={defaultTheme}>
         <CssBaseline />
         {children}

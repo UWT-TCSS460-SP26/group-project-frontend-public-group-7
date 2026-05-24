@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { SessionProvider } from 'next-auth/react';
-import type { ReactNode } from 'react';
+import { SessionProvider } from "next-auth/react";
+import type { ReactNode } from "react";
 
 /**
  * Client-side wrapper for NextAuth's SessionProvider so client components

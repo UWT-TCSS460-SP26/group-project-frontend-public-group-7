@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 
 /**
  * Section-level auth gate for the `(dashboard)` route group.
@@ -20,13 +20,13 @@ import { auth } from '@/lib/auth';
  */
 export default auth((request) => {
   if (!request.auth) {
-    const signInUrl = new URL('/api/auth/signin', request.url);
-    signInUrl.searchParams.set('callbackUrl', request.nextUrl.pathname);
+    const signInUrl = new URL("/api/auth/signin", request.url);
+    signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
     return NextResponse.redirect(signInUrl);
   }
   return NextResponse.next();
 });
 
 export const config = {
-  matcher: ['/dashboard', '/messages/view', '/messages/view/:id', '/messages/send', '/debug'],
+  matcher: [],
 };
