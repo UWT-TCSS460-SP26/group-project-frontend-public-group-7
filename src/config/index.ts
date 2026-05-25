@@ -19,6 +19,13 @@ export const APP_CONFIG = {
 
   routes: {
     home: "/",
+    dashboard: "/dashboard",
+    messagesPublic: "/messages",
+    messagesView: "/messages/view",
+    messagesSend: "/messages/send",
+    debug: "/debug",
+    profile: "/profile",
+    search: "/search",
   },
 } as const;
 
