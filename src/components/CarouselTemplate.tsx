@@ -19,6 +19,9 @@ export default function MediaCarousel({
 }: MediaCarouselProps) {
   const [offset, setOffset] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [highlightedId, setHighlightedId] = useState<number | null>(
+    items[0]?.id ?? null,
+  );
   const isPreviewOpen = selectedId !== null;
 
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -37,6 +40,11 @@ export default function MediaCarousel({
   const touchDragLastXRef = useRef<number | null>(null);
   const touchDraggingRef = useRef(false);
   const preventClickRef = useRef(false);
+  const offsetRef = useRef(0);
+  const centerCandidateIndexRef = useRef<number | null>(null);
+  const centerHighlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const itemCount = items.length;
   const cardWidth = 180;
@@ -70,6 +78,15 @@ export default function MediaCarousel({
     window.addEventListener("resize", updateBounds);
     return () => window.removeEventListener("resize", updateBounds);
   }, []);
+
+  useEffect(() => {
+    offsetRef.current = offset;
+  }, [offset]);
+
+  useEffect(() => {
+    setHighlightedId(items[0]?.id ?? null);
+    centerCandidateIndexRef.current = null;
+  }, [items]);
 
   useEffect(() => {
     const animate = () => {
@@ -138,6 +155,50 @@ export default function MediaCarousel({
 
       wasEdgeScrollingRef.current = isEdgeScrolling;
 
+      if (!isPreviewOpen && itemCount > 0) {
+        const currentOffset = offsetRef.current;
+        const nearestIndex = items.reduce(
+          (closestIndex, _item, index) => {
+            let x = index * spacing + currentOffset;
+
+            if (infinite && totalWidth > 0) {
+              x = x % totalWidth;
+              if (x > totalWidth / 2) x -= totalWidth;
+              if (x < -totalWidth / 2) x += totalWidth;
+            }
+
+            if (closestIndex === -1) {
+              return index;
+            }
+
+            let closestX = closestIndex * spacing + currentOffset;
+            if (infinite && totalWidth > 0) {
+              closestX = closestX % totalWidth;
+              if (closestX > totalWidth / 2) closestX -= totalWidth;
+              if (closestX < -totalWidth / 2) closestX += totalWidth;
+            }
+
+            return Math.abs(x) < Math.abs(closestX) ? index : closestIndex;
+          },
+          -1,
+        );
+
+        if (nearestIndex !== centerCandidateIndexRef.current) {
+          centerCandidateIndexRef.current = nearestIndex;
+
+          if (centerHighlightTimeoutRef.current) {
+            clearTimeout(centerHighlightTimeoutRef.current);
+          }
+
+          centerHighlightTimeoutRef.current = setTimeout(() => {
+            const centeredItem = items[nearestIndex];
+            if (centeredItem) {
+              setHighlightedId(centeredItem.id);
+            }
+          }, 50);
+        }
+      }
+
       requestRef.current = requestAnimationFrame(animate);
     };
 
@@ -146,8 +207,10 @@ export default function MediaCarousel({
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       if (wheelStopTimeoutRef.current)
         clearTimeout(wheelStopTimeoutRef.current);
+      if (centerHighlightTimeoutRef.current)
+        clearTimeout(centerHighlightTimeoutRef.current);
     };
-  }, [infinite, isPreviewOpen, normalizeOffset, spacing, totalWidth]);
+  }, [infinite, isPreviewOpen, itemCount, items, normalizeOffset, spacing, totalWidth]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isPreviewOpen) return;
@@ -354,12 +417,19 @@ export default function MediaCarousel({
                 marginTop: `-${(280 + labelHeight) / 2}px`,
                 borderRadius: "8px",
                 overflow: "hidden",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+                border:
+                  highlightedId === item.id
+                    ? "3px solid #F5C518"
+                    : "3px solid transparent",
+                boxShadow:
+                  highlightedId === item.id
+                    ? "0 0 0 1px rgba(245,197,24,0.55), 0 0 24px rgba(245,197,24,0.45), 0 10px 30px rgba(0,0,0,0.5)"
+                    : "0 10px 30px rgba(0,0,0,0.5)",
                 cursor: "pointer",
                 transform: `translate3d(${x}px, 0, 0) scale(${scale})`,
                 zIndex: Math.round(100 - distanceFromCenter / 10),
                 willChange: "transform",
-                transition: "box-shadow 0.3s ease",
+                transition: "border-color 0.2s ease, box-shadow 0.3s ease",
                 "&:hover": {
                   boxShadow: "0 0 20px #F5C518", // Yellow glow on hover
                   zIndex: 1000,
