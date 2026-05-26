@@ -22,6 +22,8 @@ import {
   enrichedTV,
   popularMoviesMultiPage,
   popularTVMultiPage,
+  searchMovies,
+  searchTV,
 } from "@/lib/media-api";
 import { apiGet, ApiError } from "@/lib/api";
 import HorizontalScroller from "@/components/HorizontalScroller";
@@ -35,7 +37,9 @@ import type {
   CastMember,
   MovieDetail,
   Community,
+  MovieSummary,
   TVDetail,
+  TVSummary,
 } from "@/types/media";
 
 interface PageProps {
@@ -48,6 +52,17 @@ function getTitleYear(item: MovieDetail | TVDetail): number | null {
   }
 
   return item.firstAirDate ? Number(item.firstAirDate.slice(0, 4)) : null;
+}
+
+function buildSeriesSearchQuery(title: string) {
+  return title
+    .split(":")[0]
+    .replace(/\b(vol\.?|volume|part|chapter)\b.*$/i, "")
+    .replace(/\b[ivx]+\b$/i, "")
+    .replace(/\b\d+\b$/i, "")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export default async function MediaDetailPage({ params }: PageProps) {
@@ -108,11 +123,26 @@ export default async function MediaDetailPage({ params }: PageProps) {
   const mainCastNames = new Set(
     tmdb.cast.map((member) => member.name.trim().toLowerCase()),
   );
+  const seriesSearchQuery = buildSeriesSearchQuery(tmdb.title);
 
-  const discoveryPool =
-    type === "movie"
-      ? await popularMoviesMultiPage(10)
-      : await popularTVMultiPage(10);
+  const [discoveryPool, seriesSearchResults] = await Promise.all([
+    type === "movie" ? popularMoviesMultiPage(10) : popularTVMultiPage(10),
+    seriesSearchQuery.length >= 3
+      ? type === "movie"
+        ? searchMovies(seriesSearchQuery, { page: 1 })
+        : searchTV(seriesSearchQuery, { page: 1 })
+      : Promise.resolve({
+          results: [],
+          page: 1,
+          totalPages: 0,
+          totalResults: 0,
+        } as {
+          results: Array<MovieSummary | TVSummary>;
+          page: number;
+          totalPages: number;
+          totalResults: number;
+        }),
+  ]);
 
   const baseSimilarIds = new Set(tmdb.similar.map((similar) => similar.id));
   const discoveryCandidateIds = discoveryPool
@@ -121,8 +151,15 @@ export default async function MediaDetailPage({ params }: PageProps) {
     .filter((candidateId) => !baseSimilarIds.has(candidateId))
     .slice(0, 40);
 
+  const seriesCandidateIds = seriesSearchResults.results
+    .filter((candidate) => candidate.id !== tmdb.id)
+    .map((candidate) => candidate.id)
+    .filter((candidateId) => !baseSimilarIds.has(candidateId))
+    .slice(0, 12);
+
   const candidateIds = [
     ...tmdb.similar.map((similar) => similar.id),
+    ...seriesCandidateIds,
     ...discoveryCandidateIds,
   ];
 
