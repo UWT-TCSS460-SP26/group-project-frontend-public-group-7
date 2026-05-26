@@ -12,9 +12,13 @@ import StarIcon from "@mui/icons-material/Star";
 import LockIcon from "@mui/icons-material/Lock";
 
 import AppNavBar from "@/components/AppNavBar";
+import UserReviewBox from "@/components/UserReviewBox";
+import UserRatingStars from "@/components/UserRatingStars";
 import { enrichedMovie, enrichedTV } from "@/lib/media-api";
 import { ApiError } from "@/lib/api";
 import HorizontalScroller from "@/components/HorizontalScroller";
+import { auth } from "@/lib/auth";
+import { getEffectiveUser } from "@/lib/dev-user";
 import type {
   CastMember,
   MovieDetail,
@@ -29,6 +33,8 @@ interface PageProps {
 
 export default async function MediaDetailPage({ params }: PageProps) {
   const { type, id } = await params;
+  const session = await auth();
+  const user = getEffectiveUser(session?.user);
 
   if (type !== "movie" && type !== "tv") notFound();
 
@@ -204,19 +210,22 @@ export default async function MediaDetailPage({ params }: PageProps) {
                 )}
               </Box>
 
-              {/* Sign in to rate placeholder */}
-              <Box
-                sx={{
-                  mt: 1.5,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 0.75,
-                  color: "text.disabled",
-                }}
-              >
-                <LockIcon fontSize="small" />
-                <Typography variant="body2">Sign in to rate</Typography>
-              </Box>
+              {user ? (
+                <UserRatingStars />
+              ) : (
+                <Box
+                  sx={{
+                    mt: 1.5,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 0.75,
+                    color: "text.disabled",
+                  }}
+                >
+                  <LockIcon fontSize="small" />
+                  <Typography variant="body2">Sign in to rate</Typography>
+                </Box>
+              )}
 
               {/* Networks */}
               {tvDetail?.networks && tvDetail.networks.length > 0 && (
@@ -391,6 +400,13 @@ export default async function MediaDetailPage({ params }: PageProps) {
                   ))}
                 </HorizontalScroller>
               </Box>
+            </>
+          )}
+
+          {user && (
+            <>
+              <Divider />
+              <UserReviewBox />
             </>
           )}
 
