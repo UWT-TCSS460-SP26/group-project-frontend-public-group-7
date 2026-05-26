@@ -12,7 +12,14 @@ export default function UserRatingStars({ max = 5 }: UserRatingStarsProps) {
   const [value, setValue] = useState<number | null>(null);
 
   return (
-    <Box sx={{ mt: 1.5 }}>
+    <Box
+      sx={{
+        mt: 1.5,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+      }}
+    >
       <Typography
         variant="caption"
         color="text.secondary"
@@ -20,7 +27,15 @@ export default function UserRatingStars({ max = 5 }: UserRatingStarsProps) {
       >
         Rate this title
       </Typography>
-      <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          gap: 1,
+          width: "100%",
+        }}
+      >
         <Rating
           value={value}
           max={max}
