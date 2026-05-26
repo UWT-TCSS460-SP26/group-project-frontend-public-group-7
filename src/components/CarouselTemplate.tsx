@@ -32,10 +32,15 @@ export default function MediaCarousel({
   const hoverCenterIndexRef = useRef<number | null>(null);
   const pointerClientPosRef = useRef({ x: 0, y: 0 });
   const hoverLockPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const touchDragStartXRef = useRef<number | null>(null);
+  const touchDragLastXRef = useRef<number | null>(null);
+  const touchDraggingRef = useRef(false);
+  const preventClickRef = useRef(false);
 
   const itemCount = items.length;
   const cardWidth = 180;
   const spacing = 220;
+  const labelHeight = 56;
   const totalWidth = itemCount * spacing;
   const minOffset = -(Math.max(itemCount - 1, 0) * spacing);
 
@@ -181,11 +186,64 @@ export default function MediaCarousel({
   };
 
   const handleItemClick = (id: number) => {
+    if (preventClickRef.current) {
+      preventClickRef.current = false;
+      return;
+    }
     setSelectedId(id);
   };
 
   const handleClose = () => {
     setSelectedId(null);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchDragStartXRef.current = touch.clientX;
+    touchDragLastXRef.current = touch.clientX;
+    touchDraggingRef.current = false;
+    preventClickRef.current = false;
+    snapPendingRef.current = false;
+    hoverCenterIndexRef.current = null;
+    hoverLockPointerRef.current = null;
+    isWheelScrollingRef.current = true;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    const lastX = touchDragLastXRef.current;
+    const startX = touchDragStartXRef.current;
+
+    if (lastX == null || startX == null) {
+      return;
+    }
+
+    const deltaX = touch.clientX - lastX;
+    const totalDelta = touch.clientX - startX;
+
+    if (Math.abs(totalDelta) > 6) {
+      touchDraggingRef.current = true;
+      preventClickRef.current = true;
+    }
+
+    if (touchDraggingRef.current) {
+      e.preventDefault();
+      setOffset((prev) => normalizeOffset(prev + deltaX));
+    }
+
+    touchDragLastXRef.current = touch.clientX;
+  };
+
+  const handleTouchEnd = () => {
+    touchDragStartXRef.current = null;
+    touchDragLastXRef.current = null;
+    isWheelScrollingRef.current = false;
+    snapPendingRef.current = true;
+
+    window.setTimeout(() => {
+      touchDraggingRef.current = false;
+      preventClickRef.current = false;
+    }, 0);
   };
 
   return (
@@ -194,9 +252,12 @@ export default function MediaCarousel({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       sx={{
         width: "100%",
-        height: "420px", // Reduced height
+        height: { xs: "360px", sm: "400px", md: "460px" },
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
@@ -204,12 +265,13 @@ export default function MediaCarousel({
         background: "#000",
         cursor: "crosshair",
         position: "relative",
+        touchAction: "pan-y",
       }}
     >
       <Box
         sx={{
           width: "100%",
-          height: "280px", // Adjusted height
+          height: { xs: "280px", sm: "300px", md: "336px" },
           position: "relative",
         }}
       >
@@ -230,7 +292,6 @@ export default function MediaCarousel({
           const scale = Math.max(0.8, 1.1 - distanceFromCenter / 1000);
           const centerProximity = Math.max(0, 1 - distanceFromCenter / 900);
           const imageBrightness = 0.62 + centerProximity * 0.55;
-          const overlayOpacity = 0.68 - centerProximity * 0.4;
 
           return (
             <Box
@@ -260,11 +321,11 @@ export default function MediaCarousel({
               sx={{
                 position: "absolute",
                 width: `${cardWidth}px`,
-                height: "280px", // Adjusted height
+                height: `${280 + labelHeight}px`,
                 left: "50%",
                 top: "50%",
                 marginLeft: `-${cardWidth / 2}px`,
-                marginTop: "-140px", // Adjusted offset
+                marginTop: `-${(280 + labelHeight) / 2}px`,
                 borderRadius: "8px",
                 overflow: "hidden",
                 boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
@@ -287,7 +348,7 @@ export default function MediaCarousel({
                 sx={{
                   position: "relative",
                   width: "100%",
-                  height: "100%",
+                  height: "280px",
                   transformOrigin: "center",
                   transition: "transform 0.25s ease",
                 }}
@@ -309,26 +370,25 @@ export default function MediaCarousel({
               <Box
                 className="media-info"
                 sx={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: `rgba(0,0,0,${overlayOpacity})`,
+                  minHeight: `${labelHeight}px`,
+                  background: "transparent",
                   color: "#F5C518", // Yellow text
-                  p: 2,
+                  px: 1.5,
+                  py: 1,
                   textAlign: "center",
-                  transition: "background-color 0.3s",
                 }}
               >
                 <Typography
                   variant="body2"
                   sx={{
                     fontWeight: "bold",
-                    textShadow: "0 2px 4px rgba(0,0,0,0.8)",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
                   }}
                 >
                   {item.title}

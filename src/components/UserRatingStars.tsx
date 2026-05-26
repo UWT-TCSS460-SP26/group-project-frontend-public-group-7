@@ -33,9 +33,11 @@ export default function UserRatingStars({ max = 5 }: UserRatingStarsProps) {
             },
           }}
         />
-        <Typography variant="body2" color="text.secondary">
-          {value ? `${value}/${max}` : "Click to rate"}
-        </Typography>
+        {value ? (
+          <Typography variant="body2" color="text.secondary">
+            {value}/{max}
+          </Typography>
+        ) : null}
       </Box>
     </Box>
   );

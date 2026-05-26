@@ -15,6 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import PersonIcon from "@mui/icons-material/Person";
 
 import { MovieDetail, TVShowDetail } from "@/types/backendObjects";
 import { getMovieById, getTVShowById } from "@/lib/fetchAPI";
@@ -210,26 +211,51 @@ export default function MediaPreviewModal({
                     {detail.cast.slice(0, 5).map((member, idx) => (
                       <Box
                         key={idx}
-                        sx={{ minWidth: "100px", textAlign: "center" }}
+                        sx={{
+                          minWidth: "100px",
+                          textAlign: "center",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                        }}
                       >
-                        <Box
-                          component="img"
-                          src={
-                            member.profileUrl ||
-                            "https://via.placeholder.com/100x150?text=No+Photo"
-                          }
-                          sx={{
-                            width: "80px",
-                            height: "120px",
-                            objectFit: "cover",
-                            borderRadius: 1,
-                            mb: 1,
-                          }}
-                        />
+                        {member.profileUrl ? (
+                          <Box
+                            component="img"
+                            src={member.profileUrl}
+                            sx={{
+                              width: "80px",
+                              height: "120px",
+                              objectFit: "cover",
+                              borderRadius: 1,
+                              mb: 1,
+                              display: "block",
+                              mx: "auto",
+                            }}
+                          />
+                        ) : (
+                          <Box
+                            sx={{
+                              width: "80px",
+                              height: "120px",
+                              borderRadius: 1,
+                              mb: 1,
+                              mx: "auto",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              bgcolor: "rgba(255,255,255,0.08)",
+                              border: "1px solid rgba(255,255,255,0.12)",
+                              color: "rgba(255,255,255,0.35)",
+                            }}
+                          >
+                            <PersonIcon sx={{ fontSize: 36 }} />
+                          </Box>
+                        )}
                         <Typography
                           variant="caption"
                           display="block"
-                          sx={{ fontWeight: "bold" }}
+                          sx={{ fontWeight: "bold", width: "100%" }}
                         >
                           {member.name}
                         </Typography>
@@ -237,6 +263,7 @@ export default function MediaPreviewModal({
                           variant="caption"
                           color="text.secondary"
                           display="block"
+                          sx={{ width: "100%" }}
                         >
                           {member.character}
                         </Typography>

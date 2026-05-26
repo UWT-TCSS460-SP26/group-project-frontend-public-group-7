@@ -6,7 +6,6 @@ import {
   CardActionArea,
   CardMedia,
   CardContent,
-  Chip,
   Typography,
 } from "@mui/material";
 import { useState } from "react";
@@ -63,20 +62,6 @@ export default function GenreRow({ genre, items }: Props) {
                     image={item.posterUrl ?? "/poster-placeholder.png"}
                     alt={item.title}
                     sx={{ aspectRatio: "2/3", objectFit: "cover" }}
-                  />
-                  <Chip
-                    label={item._type === "movie" ? "Movie" : "TV"}
-                    size="small"
-                    sx={{
-                      position: "absolute",
-                      top: 6,
-                      left: 6,
-                      bgcolor: "primary.main",
-                      color: "primary.contrastText",
-                      fontWeight: "bold",
-                      fontSize: "0.6rem",
-                      height: 18,
-                    }}
                   />
                 </Box>
                 <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>

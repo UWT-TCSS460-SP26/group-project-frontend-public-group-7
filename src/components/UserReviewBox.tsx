@@ -3,9 +3,14 @@
 import { useState } from "react";
 import { Box, Button, TextField, Typography } from "@mui/material";
 
-export default function UserReviewBox() {
+interface UserReviewBoxProps {
+  username: string;
+}
+
+export default function UserReviewBox({ username }: UserReviewBoxProps) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const canPost = body.trim().length > 0;
 
   return (
     <Box
@@ -26,7 +31,7 @@ export default function UserReviewBox() {
         Write a review
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Share your thoughts. This is a preview-only text box for now.
+        Posting as {username}
       </Typography>
 
       <Box sx={{ display: "grid", gap: 1.5 }}>
@@ -46,7 +51,7 @@ export default function UserReviewBox() {
           minRows={4}
         />
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button variant="contained" disabled>
+          <Button variant="contained" disabled={!canPost}>
             Post review
           </Button>
         </Box>

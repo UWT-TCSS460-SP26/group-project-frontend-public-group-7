@@ -32,7 +32,7 @@ export interface Community {
     id: number;
     title: string;
     body: string;
-    author?: string;
+    author?: string | { name?: string | null } | null;
   }>;
 }
 

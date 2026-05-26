@@ -34,7 +34,12 @@ export default async function AppNavBar({
       <Container maxWidth={false} sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
         <Toolbar
           disableGutters
-          sx={{ justifyContent: "space-between", gap: 2 }}
+          sx={{
+            justifyContent: "space-between",
+            gap: 1.5,
+            flexWrap: { xs: "wrap", sm: "nowrap" },
+            py: { xs: 1, sm: 0 },
+          }}
         >
           <Box
             component={Link}
@@ -62,12 +67,20 @@ export default async function AppNavBar({
             </Typography>
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              width: { xs: "100%", sm: "auto" },
+              justifyContent: { xs: "space-between", sm: "flex-end" },
+            }}
+          >
             <Button
               component={Link}
               href={APP_CONFIG.routes.home}
               color="inherit"
-              sx={{ color: "text.primary" }}
+              sx={{ color: "text.primary", minWidth: { xs: 0, sm: 64 } }}
             >
               Home
             </Button>
@@ -75,7 +88,11 @@ export default async function AppNavBar({
               component={Link}
               href={APP_CONFIG.routes.search}
               color="inherit"
-              sx={{ color: "primary.main", fontWeight: 700 }}
+              sx={{
+                color: "primary.main",
+                fontWeight: 700,
+                minWidth: { xs: 0, sm: 64 },
+              }}
             >
               Search
             </Button>

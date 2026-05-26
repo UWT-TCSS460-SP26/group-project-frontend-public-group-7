@@ -10,25 +10,39 @@ import {
 } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import LockIcon from "@mui/icons-material/Lock";
+import MovieIcon from "@mui/icons-material/Movie";
 
 import AppNavBar from "@/components/AppNavBar";
+import ReviewExcerpt from "@/components/ReviewExcerpt";
 import UserReviewBox from "@/components/UserReviewBox";
 import UserRatingStars from "@/components/UserRatingStars";
-import { enrichedMovie, enrichedTV } from "@/lib/media-api";
-import { ApiError } from "@/lib/api";
+import {
+  enrichedMovie,
+  enrichedTV,
+  popularMoviesMultiPage,
+  popularTVMultiPage,
+} from "@/lib/media-api";
+import { apiGet, ApiError } from "@/lib/api";
 import HorizontalScroller from "@/components/HorizontalScroller";
 import { auth } from "@/lib/auth";
 import { getEffectiveUser } from "@/lib/dev-user";
 import type {
   CastMember,
   MovieDetail,
-  TVDetail,
   Community,
-  SimilarTitle,
+  TVDetail,
 } from "@/types/media";
 
 interface PageProps {
   params: Promise<{ type: string; id: string }>;
+}
+
+function getTitleYear(item: MovieDetail | TVDetail): number | null {
+  if ("releaseYear" in item) {
+    return item.releaseYear ?? null;
+  }
+
+  return item.firstAirDate ? Number(item.firstAirDate.slice(0, 4)) : null;
 }
 
 export default async function MediaDetailPage({ params }: PageProps) {
@@ -74,6 +88,126 @@ export default async function MediaDetailPage({ params }: PageProps) {
     );
   if (tvDetail?.totalEpisodes) meta.push(`${tvDetail.totalEpisodes} episodes`);
   if (tmdb.status) meta.push(tmdb.status);
+
+  const mainYear = getTitleYear(tmdb);
+  const mainGenreIds = new Set(tmdb.genres.map((genre) => genre.id));
+  const mainCastNames = new Set(
+    tmdb.cast.map((member) => member.name.trim().toLowerCase()),
+  );
+
+  const discoveryPool =
+    type === "movie"
+      ? await popularMoviesMultiPage(10)
+      : await popularTVMultiPage(10);
+
+  const baseSimilarIds = new Set(tmdb.similar.map((similar) => similar.id));
+  const discoveryCandidateIds = discoveryPool
+    .filter((candidate) => candidate.id !== tmdb.id)
+    .map((candidate) => candidate.id)
+    .filter((candidateId) => !baseSimilarIds.has(candidateId))
+    .slice(0, 40);
+
+  const candidateIds = [
+    ...tmdb.similar.map((similar) => similar.id),
+    ...discoveryCandidateIds,
+  ];
+
+  const similarDetails = await Promise.allSettled(
+    candidateIds.map((candidateId) =>
+      type === "movie"
+        ? apiGet<MovieDetail>(`/v1/media/movies/${candidateId}`)
+        : apiGet<TVDetail>(`/v1/media/tv/${candidateId}`),
+    ),
+  );
+
+  const scoredSimilar = similarDetails
+    .filter(
+      (result): result is PromiseFulfilledResult<MovieDetail | TVDetail> =>
+        result.status === "fulfilled",
+    )
+    .map((result) => result.value)
+    .map((similar) => {
+      const genreOverlapCount = similar.genres.filter((genre) =>
+        mainGenreIds.has(genre.id),
+      ).length;
+      const sharedCastCount = similar.cast.filter((member) =>
+        mainCastNames.has(member.name.trim().toLowerCase()),
+      ).length;
+      const hasSharedGenre = genreOverlapCount > 0;
+      const hasSharedCastMember = sharedCastCount > 0;
+
+      const similarYear = getTitleYear(similar);
+      const score =
+        sharedCastCount * 4 +
+        genreOverlapCount * 2 +
+        (mainYear != null && similarYear != null
+          ? Math.max(0, 2 - Math.abs(similarYear - mainYear))
+          : 0);
+
+      return {
+        similar,
+        hasSharedGenre,
+        hasSharedCastMember,
+        genreOverlapCount,
+        sharedCastCount,
+        score,
+      };
+    });
+
+  const filteredSimilar = scoredSimilar
+    .filter(
+      ({ hasSharedGenre, hasSharedCastMember }) =>
+        hasSharedGenre && hasSharedCastMember,
+    )
+    .sort((a, b) => {
+      if (a.sharedCastCount !== b.sharedCastCount) {
+        return b.sharedCastCount - a.sharedCastCount;
+      }
+      if (a.genreOverlapCount !== b.genreOverlapCount) {
+        return b.genreOverlapCount - a.genreOverlapCount;
+      }
+      return b.score - a.score;
+    })
+    .map(({ similar }) => similar);
+
+  const castOnlySimilar = scoredSimilar
+    .filter(
+      ({ hasSharedGenre, hasSharedCastMember }) =>
+        hasSharedCastMember && !hasSharedGenre,
+    )
+    .sort((a, b) => {
+      if (a.sharedCastCount !== b.sharedCastCount) {
+        return b.sharedCastCount - a.sharedCastCount;
+      }
+      return b.score - a.score;
+    })
+    .map(({ similar }) => similar);
+
+  const genreOnlySimilar = scoredSimilar
+    .filter(
+      ({ hasSharedGenre, hasSharedCastMember }) =>
+        hasSharedGenre && !hasSharedCastMember,
+    )
+    .sort((a, b) => {
+      if (a.genreOverlapCount !== b.genreOverlapCount) {
+        return b.genreOverlapCount - a.genreOverlapCount;
+      }
+      return b.score - a.score;
+    })
+    .map(({ similar }) => similar);
+
+  const seenMoreLikeThisIds = new Set<number>();
+  const moreLikeThisTitles = [
+    ...filteredSimilar,
+    ...castOnlySimilar,
+    ...genreOnlySimilar,
+  ].filter((similar) => {
+    if (seenMoreLikeThisIds.has(similar.id)) {
+      return false;
+    }
+    seenMoreLikeThisIds.add(similar.id);
+    return true;
+  });
 
   return (
     <Box>
@@ -129,7 +263,13 @@ export default async function MediaDetailPage({ params }: PageProps) {
 
       <Container
         maxWidth="lg"
-        sx={{ mt: 0, pt: { xs: 3, md: 4 }, position: "relative", pb: 6 }}
+        sx={{
+          mt: 0,
+          pt: { xs: 2.5, md: 4 },
+          px: { xs: 2, sm: 3 },
+          position: "relative",
+          pb: 6,
+        }}
       >
         <Stack spacing={5}>
           {/* ── Hero ── */}
@@ -156,7 +296,15 @@ export default async function MediaDetailPage({ params }: PageProps) {
 
             {/* Info */}
             <Box sx={{ pb: { sm: 1 } }}>
-              <Typography variant="h4" fontWeight="bold" gutterBottom>
+              <Typography
+                variant="h4"
+                fontWeight="bold"
+                gutterBottom
+                sx={{
+                  fontSize: { xs: "2rem", sm: "2.5rem" },
+                  textAlign: { xs: "center", sm: "left" },
+                }}
+              >
                 {tmdb.title}
               </Typography>
 
@@ -175,7 +323,15 @@ export default async function MediaDetailPage({ params }: PageProps) {
                 {meta.join(" · ")}
               </Typography>
 
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 1 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 0.75,
+                  mt: 1,
+                  justifyContent: { xs: "center", sm: "flex-start" },
+                }}
+              >
                 {tmdb.genres.map((g) => (
                   <Chip key={g.id} label={g.name ?? g.id} size="small" />
                 ))}
@@ -194,7 +350,14 @@ export default async function MediaDetailPage({ params }: PageProps) {
                 Member ratings
               </Typography>
               <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.25 }}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  mt: 0.25,
+                  flexWrap: "wrap",
+                  justifyContent: { xs: "center", sm: "flex-start" },
+                }}
               >
                 <StarIcon sx={{ color: "primary.main" }} />
                 <Typography fontWeight="bold" fontSize="1.1rem">
@@ -300,7 +463,7 @@ export default async function MediaDetailPage({ params }: PageProps) {
               >
                 Cast
               </Typography>
-              <HorizontalScroller infinite={tmdb.cast.length >= 10}>
+              <HorizontalScroller infinite={false}>
                 {tmdb.cast.map((member: CastMember) => (
                   <Box
                     key={`${member.name}-${member.character}`}
@@ -343,7 +506,7 @@ export default async function MediaDetailPage({ params }: PageProps) {
           )}
 
           {/* ── Similar titles ── */}
-          {tmdb.similar && tmdb.similar.length > 0 && (
+          {moreLikeThisTitles.length > 0 && (
             <>
               <Divider />
               <Box>
@@ -355,30 +518,61 @@ export default async function MediaDetailPage({ params }: PageProps) {
                 >
                   More Like This
                 </Typography>
-                <HorizontalScroller infinite={tmdb.similar.length >= 10}>
-                  {tmdb.similar.map((s: SimilarTitle) => (
+                <HorizontalScroller infinite={false}>
+                  {moreLikeThisTitles.map((s) => (
                     <Box
                       key={s.id}
                       component="a"
                       href={`/media/${type}/${s.id}`}
                       sx={{
-                        minWidth: 120,
-                        maxWidth: 120,
+                        minWidth: { xs: 104, sm: 120 },
+                        maxWidth: { xs: 104, sm: 120 },
                         flexShrink: 0,
                         textDecoration: "none",
                       }}
                     >
-                      <Box
-                        component="img"
-                        src={s.posterUrl ?? "/poster-placeholder.png"}
-                        alt={s.title}
-                        sx={{
-                          width: "100%",
-                          aspectRatio: "2/3",
-                          objectFit: "cover",
-                          borderRadius: 1,
-                        }}
-                      />
+                      {s.posterUrl ? (
+                        <Box
+                          component="img"
+                          src={s.posterUrl}
+                          alt={s.title}
+                          sx={{
+                            width: "100%",
+                            aspectRatio: "2/3",
+                            objectFit: "cover",
+                            borderRadius: 1,
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            width: "100%",
+                            aspectRatio: "2/3",
+                            borderRadius: 1,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 1,
+                            px: 1.5,
+                            textAlign: "center",
+                            background:
+                              "linear-gradient(180deg, rgba(255,193,7,0.18) 0%, rgba(255,255,255,0.06) 100%)",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                            color: "rgba(255,255,255,0.7)",
+                          }}
+                        >
+                          <MovieIcon
+                            sx={{ fontSize: 30, color: "primary.main" }}
+                          />
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "rgba(255,255,255,0.7)" }}
+                          >
+                            No poster available
+                          </Typography>
+                        </Box>
+                      )}
                       <Typography
                         variant="caption"
                         display="block"
@@ -387,13 +581,13 @@ export default async function MediaDetailPage({ params }: PageProps) {
                       >
                         {s.title}
                       </Typography>
-                      {s.releaseYear && (
+                      {getTitleYear(s) && (
                         <Typography
                           variant="caption"
                           color="text.secondary"
                           display="block"
                         >
-                          {s.releaseYear}
+                          {getTitleYear(s)}
                         </Typography>
                       )}
                     </Box>
@@ -406,7 +600,9 @@ export default async function MediaDetailPage({ params }: PageProps) {
           {user && (
             <>
               <Divider />
-              <UserReviewBox />
+              <UserReviewBox
+                username={user.name || user.email || "Signed in user"}
+              />
             </>
           )}
 
@@ -425,25 +621,12 @@ export default async function MediaDetailPage({ params }: PageProps) {
                 </Typography>
                 <Stack spacing={2}>
                   {community.recentReviews.map((r) => (
-                    <Box
+                    <ReviewExcerpt
                       key={r.id}
-                      sx={{
-                        bgcolor: "background.paper",
-                        borderRadius: 2,
-                        p: 2,
-                      }}
-                    >
-                      <Typography
-                        variant="subtitle2"
-                        fontWeight="bold"
-                        gutterBottom
-                      >
-                        {r.title}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {r.body}
-                      </Typography>
-                    </Box>
+                      title={r.title}
+                      body={r.body}
+                      author={r.author}
+                    />
                   ))}
                 </Stack>
               </Box>

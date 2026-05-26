@@ -116,7 +116,10 @@ export default function SearchForm({
         onChange={(e) => setQ(e.target.value)}
         variant="outlined"
         size="small"
-        sx={{ flexGrow: 1, minWidth: compact ? 520 : 260 }}
+        sx={{
+          flexGrow: 1,
+          minWidth: compact ? { xs: "100%", md: 520 } : { xs: "100%", sm: 260 },
+        }}
         autoFocus={!compact}
       />
 
@@ -125,7 +128,10 @@ export default function SearchForm({
         variant="outlined"
         startIcon={<TuneIcon />}
         onClick={(e) => setAnchorEl(e.currentTarget)}
-        sx={{ whiteSpace: "nowrap" }}
+        sx={{
+          whiteSpace: "nowrap",
+          width: { xs: compact ? "calc(50% - 4px)" : "auto", sm: "auto" },
+        }}
       >
         Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
       </Button>
@@ -135,7 +141,10 @@ export default function SearchForm({
         variant="contained"
         startIcon={<SearchIcon />}
         disabled={!q.trim() || !hasCriteria}
-        sx={{ whiteSpace: "nowrap" }}
+        sx={{
+          whiteSpace: "nowrap",
+          width: { xs: compact ? "calc(50% - 4px)" : "auto", sm: "auto" },
+        }}
       >
         Search
       </Button>
@@ -180,8 +189,16 @@ export default function SearchForm({
         onClose={() => setAnchorEl(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
+        slotProps={{
+          paper: {
+            sx: {
+              width: { xs: "calc(100vw - 32px)", sm: 360 },
+              maxWidth: "calc(100vw - 32px)",
+            },
+          },
+        }}
       >
-        <Box sx={{ width: 320, p: 2, display: "grid", gap: 2 }}>
+        <Box sx={{ width: "100%", p: 2, display: "grid", gap: 2 }}>
           <Typography variant="subtitle1" fontWeight="bold">
             Refine Search
           </Typography>
