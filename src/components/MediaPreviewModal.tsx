@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Backdrop,
@@ -34,23 +34,6 @@ export default function MediaPreviewModal({
   const [detail, setDetail] = useState<MovieDetail | TVShowDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const isOpen = mediaId !== null;
-
-  const unlockBodyScroll = useCallback((restoreScrollY?: number) => {
-    document.documentElement.style.overflow = "";
-    document.body.style.overflow = "";
-    document.body.style.position = "";
-    document.body.style.top = "";
-    document.body.style.width = "";
-
-    if (typeof restoreScrollY === "number") {
-      window.scrollTo(0, restoreScrollY);
-    }
-  }, []);
-
-  const handleClose = useCallback(() => {
-    unlockBodyScroll();
-    onClose();
-  }, [onClose, unlockBodyScroll]);
 
   useEffect(() => {
     if (mediaId == null) {
@@ -92,27 +75,11 @@ export default function MediaPreviewModal({
     };
   }, [mediaId, mediaType]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const scrollY = window.scrollY;
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = "100%";
-
-    return () => {
-      unlockBodyScroll(scrollY);
-    };
-  }, [isOpen, unlockBodyScroll]);
-
   return (
     <Modal
       open={isOpen}
-      onClose={handleClose}
+      onClose={onClose}
+      disableScrollLock
       closeAfterTransition
       slots={{ backdrop: Backdrop }}
       slotProps={{
@@ -147,7 +114,7 @@ export default function MediaPreviewModal({
               <Box>
                 <Box sx={{ position: "relative", height: "300px" }}>
                   <IconButton
-                    onClick={handleClose}
+                    onClick={onClose}
                     sx={{
                       position: "absolute",
                       right: 8,
@@ -313,7 +280,7 @@ export default function MediaPreviewModal({
                     href={`/media/${mediaType}/${detail.id}`}
                     variant="outlined"
                     color="primary"
-                    onClick={handleClose}
+                    onClick={onClose}
                     sx={{ mt: 1 }}
                   >
                     View Full Details
