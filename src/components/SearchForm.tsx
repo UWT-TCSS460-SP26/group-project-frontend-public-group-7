@@ -87,10 +87,10 @@ export default function SearchForm({
   const filterSummary = [
     !includeMovies || !includeTV
       ? includeMovies
-          ? "Movies only"
-          : includeTV
-            ? "TV only"
-            : null
+        ? "Movies only"
+        : includeTV
+          ? "TV only"
+          : null
       : null,
     year.trim() ? `Year ${year.trim()}` : null,
     genreId.trim()

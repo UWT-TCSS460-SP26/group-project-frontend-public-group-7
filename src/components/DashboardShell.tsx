@@ -23,7 +23,6 @@ import Logo from "@/components/Logo";
 import SignInButton from "@/components/SignInButton";
 import UserAccountMenu from "@/components/UserAccountMenu";
 import { APP_CONFIG } from "@/config";
-import { DEV_AUTH_SIMULATION_ENABLED, getEffectiveUser } from "@/lib/dev-user";
 
 /**
  * App shell rendered by the `(dashboard)` route group: top AppBar with
@@ -33,8 +32,8 @@ import { DEV_AUTH_SIMULATION_ENABLED, getEffectiveUser } from "@/lib/dev-user";
  */
 export default function DashboardShell({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
-  const user = getEffectiveUser(session?.user);
-  const signedIn = status === "authenticated" || DEV_AUTH_SIMULATION_ENABLED;
+  const user = session?.user;
+  const signedIn = status === "authenticated";
 
   return (
     <section>

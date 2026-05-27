@@ -13,7 +13,6 @@ import SearchPagination from "@/components/SearchPagination";
 import { apiGet, ApiError } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { APP_CONFIG } from "@/config";
-import { getEffectiveUser } from "@/lib/dev-user";
 import type { MovieSummary, TVDetail, TVSummary } from "@/types/media";
 
 interface PageProps {
@@ -124,7 +123,11 @@ async function fetchMovieTitleResults(
   );
 }
 
-async function fetchTVTitleResults(query: string, year: string, genreId: string) {
+async function fetchTVTitleResults(
+  query: string,
+  year: string,
+  genreId: string,
+) {
   const allResults = await fetchAllPagedResults((page) =>
     searchTV(query, { page, year, genreId }),
   );
@@ -147,10 +150,16 @@ async function fetchMovieCastResults(
   const allResults = await fetchAllPagedResults((page) =>
     searchMoviesByCast(query, page),
   );
-  return allResults.filter((item) => matchesMetadataFilters(item, year, genreId));
+  return allResults.filter((item) =>
+    matchesMetadataFilters(item, year, genreId),
+  );
 }
 
-async function fetchTVCastResults(query: string, year: string, genreId: string) {
+async function fetchTVCastResults(
+  query: string,
+  year: string,
+  genreId: string,
+) {
   if (!query.trim()) {
     return [] as TVSummary[];
   }
@@ -158,12 +167,14 @@ async function fetchTVCastResults(query: string, year: string, genreId: string) 
   const allResults = await fetchAllPagedResults((page) =>
     searchTVByCast(query, page),
   );
-  return allResults.filter((item) => matchesMetadataFilters(item, year, genreId));
+  return allResults.filter((item) =>
+    matchesMetadataFilters(item, year, genreId),
+  );
 }
 
 export default async function SearchPage({ searchParams }: PageProps) {
   const session = await auth();
-  const user = getEffectiveUser(session?.user);
+  const user = session?.user;
   const {
     q,
     page = "1",

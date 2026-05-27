@@ -30,7 +30,6 @@ import {
 import { apiGet, ApiError } from "@/lib/api";
 import HorizontalScroller from "@/components/HorizontalScroller";
 import { auth } from "@/lib/auth";
-import { getEffectiveUser } from "@/lib/dev-user";
 import type {
   MovieDetail as RawMovieDetail,
   TVShowDetail as RawTVShowDetail,
@@ -70,7 +69,7 @@ function buildSeriesSearchQuery(title: string) {
 export default async function MediaDetailPage({ params }: PageProps) {
   const { type, id } = await params;
   const session = await auth();
-  const user = getEffectiveUser(session?.user);
+  const user = session?.user;
 
   if (type !== "movie" && type !== "tv") notFound();
 

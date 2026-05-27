@@ -18,7 +18,6 @@ import { groupByGenre, type GenreMediaItem } from "@/lib/group-media-by-genre";
 import { popularMoviesMultiPage, popularTVMultiPage } from "@/lib/media-api";
 import { auth } from "@/lib/auth";
 import { APP_CONFIG } from "@/config";
-import { getEffectiveUser } from "@/lib/dev-user";
 import { MovieCard, TVShowCard } from "@/types/backendObjects";
 
 /**
@@ -26,7 +25,7 @@ import { MovieCard, TVShowCard } from "@/types/backendObjects";
  */
 export default async function HomePage() {
   const session = await auth();
-  const user = getEffectiveUser(session?.user);
+  const user = session?.user;
 
   let movies: MovieCard[] = [];
   let tvShows: TVShowCard[] = [];

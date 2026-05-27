@@ -13,7 +13,6 @@ import HomeSignInButton from "@/components/HomeSignInButton";
 import UserAccountMenu from "@/components/UserAccountMenu";
 import { APP_CONFIG } from "@/config";
 import { auth } from "@/lib/auth";
-import { getEffectiveUser } from "@/lib/dev-user";
 
 interface AppNavBarProps {
   callbackUrl?: string;
@@ -23,7 +22,7 @@ export default async function AppNavBar({
   callbackUrl = APP_CONFIG.routes.home,
 }: AppNavBarProps) {
   const session = await auth();
-  const user = getEffectiveUser(session?.user);
+  const user = session?.user;
 
   return (
     <AppBar

@@ -15,7 +15,6 @@ import AppNavBar from "@/components/AppNavBar";
 import { APP_CONFIG } from "@/config";
 import { API_BASE } from "@/lib/api";
 import { auth } from "@/lib/auth";
-import { DEV_AUTH_SIMULATION_ENABLED, getEffectiveUser } from "@/lib/dev-user";
 
 type DecodedProfileClaims = {
   sub?: string;
@@ -73,9 +72,9 @@ function formatDate(value?: string) {
 
 export default async function ProfilePage() {
   const session = await auth();
-  const user = getEffectiveUser(session?.user);
+  const user = session?.user;
 
-  if (!user && !DEV_AUTH_SIMULATION_ENABLED) {
+  if (!user) {
     redirect(
       `/api/auth/signin?callbackUrl=${encodeURIComponent(APP_CONFIG.routes.profile)}`,
     );
@@ -233,11 +232,7 @@ export default async function ProfilePage() {
                   sx={{ mt: 2, rowGap: 1 }}
                 >
                   <Chip
-                    label={
-                      DEV_AUTH_SIMULATION_ENABLED && !session
-                        ? "Dev session"
-                        : "Signed in"
-                    }
+                    label="Signed in"
                     color="primary"
                     variant="outlined"
                     size="small"

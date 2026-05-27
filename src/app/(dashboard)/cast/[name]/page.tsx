@@ -1,4 +1,11 @@
-import { Avatar, Box, Container, Divider, Stack, Typography } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  Container,
+  Divider,
+  Stack,
+  Typography,
+} from "@mui/material";
 
 import AppNavBar from "@/components/AppNavBar";
 import MediaCard from "@/components/MediaCard";
