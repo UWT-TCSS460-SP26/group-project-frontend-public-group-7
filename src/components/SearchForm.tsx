@@ -50,8 +50,7 @@ export default function SearchForm({
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const hasCriteria = includeMovies || includeTV;
-  const canSearch =
-    hasCriteria && Boolean(q.trim());
+  const canSearch = hasCriteria && Boolean(q.trim());
   const open = Boolean(anchorEl);
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -163,7 +162,8 @@ export default function SearchForm({
           color="text.secondary"
           sx={{ width: "100%" }}
         >
-          Search by title or use the filters to browse by media type, year, or genre.
+          Search by title or use the filters to browse by media type, year, or
+          genre.
         </Typography>
       )}
 

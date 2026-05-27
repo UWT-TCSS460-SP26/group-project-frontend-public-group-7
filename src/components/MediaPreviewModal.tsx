@@ -60,7 +60,9 @@ export default function MediaPreviewModal({
 
         if (!cancelled) {
           setDetail(result);
-          setCommunityRating(ratings.totalRatings > 0 ? ratings.averageScore : null);
+          setCommunityRating(
+            ratings.totalRatings > 0 ? ratings.averageScore : null,
+          );
         }
       } catch (err) {
         if (!cancelled) {

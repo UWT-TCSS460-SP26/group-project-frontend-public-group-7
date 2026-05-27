@@ -101,7 +101,9 @@ async function fetchFilteredMovieResults(
       .flatMap((result) => result.value.results),
   ];
 
-  return allResults.filter((item) => matchesFilters(item, query, year, genreId));
+  return allResults.filter((item) =>
+    matchesFilters(item, query, year, genreId),
+  );
 }
 
 async function fetchFilteredTVResults(
@@ -128,7 +130,9 @@ async function fetchFilteredTVResults(
       .flatMap((result) => result.value.results),
   ];
 
-  return allResults.filter((item) => matchesFilters(item, query, year, genreId));
+  return allResults.filter((item) =>
+    matchesFilters(item, query, year, genreId),
+  );
 }
 
 export default async function SearchPage({ searchParams }: PageProps) {
@@ -150,7 +154,8 @@ export default async function SearchPage({ searchParams }: PageProps) {
   const hasCriteria = includeMovies || includeTV;
   const hasSearchInput =
     Boolean(q?.trim()) || Boolean(year.trim()) || Boolean(genreId.trim());
-  const needsClientSideFiltering = Boolean(year.trim()) || Boolean(genreId.trim());
+  const needsClientSideFiltering =
+    Boolean(year.trim()) || Boolean(genreId.trim());
 
   const results: CombinedResult[] = [];
   let totalPages = 0;
@@ -231,7 +236,9 @@ export default async function SearchPage({ searchParams }: PageProps) {
 
         results.push(...dedupeCombinedResults(interleaveResults(movies, tv)));
         totalResults =
-          (includeMovies && moviesData.status === "fulfilled" && moviesData.value
+          (includeMovies &&
+          moviesData.status === "fulfilled" &&
+          moviesData.value
             ? moviesData.value.totalResults
             : 0) +
           (includeTV && tvData.status === "fulfilled" && tvData.value
@@ -272,7 +279,9 @@ export default async function SearchPage({ searchParams }: PageProps) {
 
   if (visibleTVResults.length > 0) {
     const seasonDetails = await Promise.allSettled(
-      visibleTVResults.map((item) => apiGet<TVDetail>(`/v1/media/tv/${item.id}`)),
+      visibleTVResults.map((item) =>
+        apiGet<TVDetail>(`/v1/media/tv/${item.id}`),
+      ),
     );
 
     visibleTVResults.forEach((item, index) => {

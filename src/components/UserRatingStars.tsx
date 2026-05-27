@@ -165,35 +165,35 @@ export default function UserRatingStars({
           </Typography>
         </Box>
       ) : (
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-start",
-          gap: 1,
-          width: "100%",
-        }}
-      >
-        <Rating
-          value={value}
-          max={max}
-          precision={0.5}
-          onChange={(_, nextValue) => void handleChange(nextValue)}
-          emptyIcon={<StarBorderIcon fontSize="inherit" />}
-          disabled={submitting}
+        <Box
           sx={{
-            color: "primary.main",
-            "& .MuiRating-iconEmpty": {
-              color: "rgba(255,255,255,0.35)",
-            },
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-start",
+            gap: 1,
+            width: "100%",
           }}
-        />
-        {value ? (
-          <Typography variant="body2" color="text.secondary">
-            {value.toFixed(1).replace(".0", "")}/{max}
-          </Typography>
-        ) : null}
-      </Box>
+        >
+          <Rating
+            value={value}
+            max={max}
+            precision={0.5}
+            onChange={(_, nextValue) => void handleChange(nextValue)}
+            emptyIcon={<StarBorderIcon fontSize="inherit" />}
+            disabled={submitting}
+            sx={{
+              color: "primary.main",
+              "& .MuiRating-iconEmpty": {
+                color: "rgba(255,255,255,0.35)",
+              },
+            }}
+          />
+          {value ? (
+            <Typography variant="body2" color="text.secondary">
+              {value.toFixed(1).replace(".0", "")}/{max}
+            </Typography>
+          ) : null}
+        </Box>
       )}
       {error ? (
         <Typography variant="caption" color="error" sx={{ mt: 0.75 }}>
