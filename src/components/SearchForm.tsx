@@ -51,7 +51,7 @@ export default function SearchForm({
 
   const hasCriteria = includeMovies || includeTV;
   const canSearch =
-    hasCriteria && Boolean(q.trim()) && Boolean(genreId.trim());
+    hasCriteria && Boolean(q.trim());
   const open = Boolean(anchorEl);
   const activeFilterCount = useMemo(() => {
     let count = 0;
