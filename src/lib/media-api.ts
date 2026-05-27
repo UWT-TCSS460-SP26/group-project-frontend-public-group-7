@@ -53,6 +53,30 @@ export function popularTV(page = 1): Promise<PagedResponse<TVSummary>> {
   return apiGet<PagedResponse<TVSummary>>(`/v1/media/tv/popular?${params}`);
 }
 
+export function searchMoviesByCast(
+  castName: string,
+  page = 1,
+): Promise<PagedResponse<MovieSummary>> {
+  const params = new URLSearchParams({
+    name: castName,
+    page: String(page),
+  });
+  return apiGet<PagedResponse<MovieSummary>>(
+    `/v1/media/movies/by-cast?${params}`,
+  );
+}
+
+export function searchTVByCast(
+  castName: string,
+  page = 1,
+): Promise<PagedResponse<TVSummary>> {
+  const params = new URLSearchParams({
+    name: castName,
+    page: String(page),
+  });
+  return apiGet<PagedResponse<TVSummary>>(`/v1/media/tv/by-cast?${params}`);
+}
+
 export async function popularMoviesMultiPage(
   pages = 4,
 ): Promise<MovieSummary[]> {

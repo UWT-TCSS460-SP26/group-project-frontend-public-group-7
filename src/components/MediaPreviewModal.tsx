@@ -230,12 +230,16 @@ export default function MediaPreviewModal({
                     {detail.cast.slice(0, 5).map((member, idx) => (
                       <Box
                         key={idx}
+                        component={Link}
+                        href={`/cast/${encodeURIComponent(member.name)}`}
                         sx={{
                           minWidth: "100px",
                           textAlign: "center",
                           display: "flex",
                           flexDirection: "column",
                           alignItems: "center",
+                          textDecoration: "none",
+                          color: "inherit",
                         }}
                       >
                         {member.profileUrl ? (

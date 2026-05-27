@@ -153,10 +153,6 @@ export default async function ProfilePage() {
     }
   }
 
-  const latestRatingDate = formatDate(
-    ratingsTelemetry?.results?.[0]?.updatedAt ||
-      ratingsTelemetry?.results?.[0]?.createdAt,
-  );
   const latestReviewDate = formatDate(
     reviewsTelemetry?.results?.[0]?.updatedAt ||
       reviewsTelemetry?.results?.[0]?.createdAt,
@@ -165,7 +161,6 @@ export default async function ProfilePage() {
   const telemetryRows = toDisplayRows([
     ["Ratings submitted", toOptionalCount(ratingsTelemetry?.totalRatings ?? 0)],
     ["Reviews written", toOptionalCount(reviewsTelemetry?.totalReviews ?? 0)],
-    ["Latest rating activity", latestRatingDate],
     ["Latest review activity", latestReviewDate],
   ]);
 

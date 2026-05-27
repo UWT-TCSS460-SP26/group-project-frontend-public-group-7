@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   Avatar,
@@ -540,11 +541,15 @@ export default async function MediaDetailPage({ params }: PageProps) {
                 {tmdb.cast.map((member: CastMember) => (
                   <Box
                     key={`${member.name}-${member.character}`}
+                    component={Link}
+                    href={`/cast/${encodeURIComponent(member.name)}`}
                     sx={{
                       minWidth: 90,
                       maxWidth: 90,
                       textAlign: "center",
                       flexShrink: 0,
+                      textDecoration: "none",
+                      color: "inherit",
                     }}
                   >
                     <Avatar
