@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -48,6 +48,26 @@ export default function SearchForm({
   const [year, setYear] = useState(initialYear);
   const [genreId, setGenreId] = useState(initialGenreId);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setQ(initialQ);
+  }, [initialQ]);
+
+  useEffect(() => {
+    setIncludeMovies(initialMovies);
+  }, [initialMovies]);
+
+  useEffect(() => {
+    setIncludeTV(initialTV);
+  }, [initialTV]);
+
+  useEffect(() => {
+    setYear(initialYear);
+  }, [initialYear]);
+
+  useEffect(() => {
+    setGenreId(initialGenreId);
+  }, [initialGenreId]);
 
   const canSearch = Boolean(q.trim());
   const open = Boolean(anchorEl);
@@ -113,7 +133,7 @@ export default function SearchForm({
       }}
     >
       <TextField
-        label="Search"
+        placeholder="Search"
         helperText="Search by title or cast member."
         value={q}
         onChange={(e) => setQ(e.target.value)}

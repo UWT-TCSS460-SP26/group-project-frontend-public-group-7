@@ -30,6 +30,10 @@ import {
 import { apiGet, ApiError } from "@/lib/api";
 import HorizontalScroller from "@/components/HorizontalScroller";
 import { auth } from "@/lib/auth";
+import {
+  formatDisplayYear,
+  formatDisplayYearFromDate,
+} from "@/lib/format-display-year";
 import type {
   MovieDetail as RawMovieDetail,
   TVShowDetail as RawTVShowDetail,
@@ -45,6 +49,11 @@ import type {
 
 interface PageProps {
   params: Promise<{ type: string; id: string }>;
+  searchParams: Promise<{
+    castName?: string;
+    castCharacter?: string;
+    castImage?: string;
+  }>;
 }
 
 function getTitleYear(item: MovieDetail | TVDetail): number | null {
@@ -66,8 +75,16 @@ function buildSeriesSearchQuery(title: string) {
     .trim();
 }
 
-export default async function MediaDetailPage({ params }: PageProps) {
+function normalizeCastName(value: string) {
+  return value.trim().toLocaleLowerCase();
+}
+
+export default async function MediaDetailPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { type, id } = await params;
+  const { castName, castCharacter, castImage } = await searchParams;
   const session = await auth();
   const user = session?.user;
 
@@ -108,12 +125,46 @@ export default async function MediaDetailPage({ params }: PageProps) {
     throw e;
   }
 
+  const selectedCastMember =
+    castName?.trim() && castCharacter?.trim()
+      ? {
+          name: castName.trim(),
+          character: castCharacter.trim(),
+          profileUrl: castImage?.trim() || null,
+        }
+      : null;
+
+  const displayCast = (() => {
+    if (!selectedCastMember) {
+      return tmdb.cast;
+    }
+
+    const existingIndex = tmdb.cast.findIndex(
+      (member) =>
+        normalizeCastName(member.name) === normalizeCastName(selectedCastMember.name),
+    );
+
+    if (existingIndex >= 0) {
+      const existingMember = tmdb.cast[existingIndex];
+      return [
+        {
+          ...existingMember,
+          character: existingMember.character || selectedCastMember.character,
+          profileUrl: existingMember.profileUrl ?? selectedCastMember.profileUrl,
+        },
+        ...tmdb.cast.filter((_, index) => index !== existingIndex),
+      ];
+    }
+
+    return [selectedCastMember, ...tmdb.cast];
+  })();
+
   const movieDetail = type === "movie" ? (tmdb as MovieDetail) : null;
   const tvDetail = type === "tv" ? (tmdb as TVDetail) : null;
 
   const year =
-    movieDetail?.releaseYear?.toString() ??
-    tvDetail?.firstAirDate?.slice(0, 4) ??
+    formatDisplayYear(movieDetail?.releaseYear) ??
+    formatDisplayYearFromDate(tvDetail?.firstAirDate) ??
     null;
 
   const meta: string[] = [];
@@ -526,7 +577,7 @@ export default async function MediaDetailPage({ params }: PageProps) {
           <Divider />
 
           {/* ── Cast ── */}
-          {tmdb.cast && tmdb.cast.length > 0 && (
+          {displayCast.length > 0 && (
             <Box>
               <Typography
                 variant="h6"
@@ -537,7 +588,7 @@ export default async function MediaDetailPage({ params }: PageProps) {
                 Cast
               </Typography>
               <HorizontalScroller infinite={false}>
-                {tmdb.cast.map((member: CastMember) => (
+                {displayCast.map((member: CastMember) => (
                   <Box
                     key={`${member.name}-${member.character}`}
                     component={Link}
@@ -599,7 +650,7 @@ export default async function MediaDetailPage({ params }: PageProps) {
                   {moreLikeThisTitles.map((s) => (
                     <Box
                       key={s.id}
-                      component="a"
+                      component={Link}
                       href={`/media/${type}/${s.id}`}
                       sx={{
                         minWidth: { xs: 104, sm: 120 },
@@ -678,7 +729,6 @@ export default async function MediaDetailPage({ params }: PageProps) {
             <>
               <Divider />
               <UserReviewBox
-                username={user.name || user.email || "Signed in user"}
                 tmdbId={Number(id)}
                 mediaType={type as "movie" | "tv"}
               />

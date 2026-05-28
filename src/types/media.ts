@@ -1,5 +1,11 @@
 export type MediaType = "movie" | "tv";
 
+export interface ReviewAuthor {
+  id?: string;
+  name?: string | null;
+  username?: string | null;
+}
+
 export interface CastMember {
   name: string;
   character: string;
@@ -32,7 +38,7 @@ export interface Community {
     id: number;
     title: string;
     body: string;
-    author?: string | { name?: string | null } | null;
+    author?: string | ReviewAuthor | null;
   }>;
 }
 
@@ -153,7 +159,7 @@ export interface ReviewRecord {
   title: string | null;
   body: string;
   userId: number;
-  author?: RatingAuthor;
+  author?: ReviewAuthor;
   createdAt: string;
   updatedAt: string;
 }

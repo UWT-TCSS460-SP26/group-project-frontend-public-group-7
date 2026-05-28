@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Container, Typography, Box, Stack } from "@mui/material";
+import { Container, Typography, Box } from "@mui/material";
 
 import AppNavBar from "@/components/AppNavBar";
 import { APP_CONFIG } from "@/config";

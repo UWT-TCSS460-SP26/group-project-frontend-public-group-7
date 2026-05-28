@@ -2,7 +2,6 @@ import { API_BASE } from "./api";
 import type {
   MyRatingListResponse,
   MyReviewListResponse,
-  MediaType,
   ReviewRecord,
   RatingRecord,
 } from "@/types/media";
@@ -26,6 +25,38 @@ export async function getMyRatings(
   }
 
   return response.json();
+}
+
+/**
+ * Fetch all ratings submitted by the authenticated user.
+ */
+export async function getAllMyRatings(
+  accessToken: string,
+  initialPage?: MyRatingListResponse,
+): Promise<RatingRecord[]> {
+  const firstPage = initialPage ?? (await getMyRatings(accessToken, 1));
+
+  if (firstPage.totalPages <= 1) {
+    return firstPage.results;
+  }
+
+  const remainingPages = await Promise.allSettled(
+    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
+      getMyRatings(accessToken, index + 2),
+    ),
+  );
+
+  return [
+    ...firstPage.results,
+    ...remainingPages
+      .filter(
+        (
+          result,
+        ): result is PromiseFulfilledResult<MyRatingListResponse> =>
+          result.status === "fulfilled",
+      )
+      .flatMap((result) => result.value.results),
+  ];
 }
 
 /**

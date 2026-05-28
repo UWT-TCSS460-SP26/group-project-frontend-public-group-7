@@ -2,11 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { Box, Button, Typography } from "@mui/material";
+import { censorProfanity } from "@/lib/censor-profanity";
+import { formatDisplayName } from "@/lib/format-display-name";
+import type { ReviewAuthor } from "@/types/media";
 
 interface ReviewExcerptProps {
   title?: string | null;
   body: string;
-  author?: string | { name?: string | null } | null;
+  author?: string | ReviewAuthor | null;
 }
 
 const MAX_PREVIEW_CHARS = 220;
@@ -20,15 +23,17 @@ export default function ReviewExcerpt({
 
   const authorName = useMemo(() => {
     if (!author) return "Unknown user";
-    if (typeof author === "string") return author;
-    return author.name?.trim() || "Unknown user";
+    if (typeof author === "string") return formatDisplayName(author);
+    return formatDisplayName(author.name ?? author.username);
   }, [author]);
 
   const isLong = body.length > MAX_PREVIEW_CHARS;
+  const censoredTitle = title ? censorProfanity(title) : null;
+  const censoredBody = censorProfanity(body);
   const previewBody =
     isLong && !expanded
-      ? `${body.slice(0, MAX_PREVIEW_CHARS).trimEnd()}...`
-      : body;
+      ? `${censoredBody.slice(0, MAX_PREVIEW_CHARS).trimEnd()}...`
+      : censoredBody;
 
   return (
     <Box
@@ -38,9 +43,9 @@ export default function ReviewExcerpt({
         p: 2,
       }}
     >
-      {title ? (
+      {censoredTitle ? (
         <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-          {title}
+          {censoredTitle}
         </Typography>
       ) : null}
 

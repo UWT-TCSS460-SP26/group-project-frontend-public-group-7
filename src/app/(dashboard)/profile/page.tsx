@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { decodeJwt } from "jose";
 import {
   Avatar,
   Box,
+  Button,
   Chip,
   Container,
   Divider,
@@ -12,9 +14,11 @@ import {
 } from "@mui/material";
 
 import AppNavBar from "@/components/AppNavBar";
+import ProfileAwardsPanel from "@/components/ProfileAwardsPanel";
 import { APP_CONFIG } from "@/config";
 import { API_BASE } from "@/lib/api";
 import { auth } from "@/lib/auth";
+import { buildProfileAwards } from "@/lib/profile-awards";
 
 type DecodedProfileClaims = {
   sub?: string;
@@ -163,6 +167,11 @@ export default async function ProfilePage() {
     ["Latest review activity", latestReviewDate],
   ]);
 
+  const awardsSummary = buildProfileAwards(
+    ratingsTelemetry?.totalRatings ?? 0,
+    reviewsTelemetry?.totalReviews ?? 0,
+  );
+
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <AppNavBar callbackUrl={APP_CONFIG.routes.profile} />
@@ -308,8 +317,22 @@ export default async function ProfilePage() {
                   </Box>
                 ))}
               </Stack>
+              <Button
+                component={Link}
+                href={APP_CONFIG.routes.userReviews}
+                variant="contained"
+                sx={{ mt: 3, alignSelf: "flex-start" }}
+              >
+                View and Edit Reviews
+              </Button>
             </Paper>
           )}
+
+          <ProfileAwardsPanel
+            awards={awardsSummary.awards}
+            unlockedCount={awardsSummary.unlockedCount}
+            nextMilestone={awardsSummary.nextMilestone}
+          />
         </Stack>
       </Container>
     </Box>

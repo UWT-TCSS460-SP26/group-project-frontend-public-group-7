@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, useEffect, useMemo, useRef } from "react";
+import { Children, useEffect, useMemo, useRef, useState } from "react";
 import { Box, IconButton } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -17,6 +17,7 @@ export default function HorizontalScroller({
 }: HorizontalScrollerProps) {
   const ref = useRef<HTMLDivElement>(null);
   const childArray = useMemo(() => Children.toArray(children), [children]);
+  const [hasOverflow, setHasOverflow] = useState(infinite);
 
   function scrollByAmount(direction: "left" | "right") {
     if (!ref.current) return;
@@ -35,6 +36,12 @@ export default function HorizontalScroller({
     if (!ref.current) return;
     const container = ref.current;
 
+    function updateOverflow() {
+      setHasOverflow(
+        infinite || container.scrollWidth - container.clientWidth > 1,
+      );
+    }
+
     if (!infinite) {
       function handleWheel(e: WheelEvent) {
         const horizontalIntent = Math.abs(e.deltaX) > Math.abs(e.deltaY);
@@ -44,8 +51,14 @@ export default function HorizontalScroller({
         container.scrollLeft += e.deltaX;
       }
 
+      updateOverflow();
+      const resizeObserver = new ResizeObserver(updateOverflow);
+      resizeObserver.observe(container);
+      window.addEventListener("resize", updateOverflow);
       container.addEventListener("wheel", handleWheel, { passive: false });
       return () => {
+        resizeObserver.disconnect();
+        window.removeEventListener("resize", updateOverflow);
         container.removeEventListener("wheel", handleWheel);
       };
     }
@@ -90,11 +103,18 @@ export default function HorizontalScroller({
     }
 
     setInitialPosition();
+    updateOverflow();
+    const resizeObserver = new ResizeObserver(() => {
+      setInitialPosition();
+      updateOverflow();
+    });
+    resizeObserver.observe(container);
     container.addEventListener("wheel", handleWheel, { passive: false });
     container.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", setInitialPosition);
 
     return () => {
+      resizeObserver.disconnect();
       container.removeEventListener("wheel", handleWheel);
       container.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", setInitialPosition);
@@ -103,28 +123,30 @@ export default function HorizontalScroller({
 
   return (
     <Box sx={{ position: "relative" }}>
-      <IconButton
-        aria-label="Scroll left"
-        onClick={() => scrollByAmount("left")}
-        sx={{
-          display: { xs: "none", md: "flex" },
-          position: "absolute",
-          left: 0,
-          top: 0,
-          bottom: 8,
-          zIndex: 2,
-          width: { xs: 32, sm: 40 },
-          borderRadius: 0,
-          bgcolor: "rgba(0,0,0,0.72)",
-          color: "primary.main",
-          border: "1px solid rgba(255,255,255,0.12)",
-          "&:hover": {
-            bgcolor: "rgba(0,0,0,0.88)",
-          },
-        }}
-      >
-        <ChevronLeftIcon />
-      </IconButton>
+      {hasOverflow && (
+        <IconButton
+          aria-label="Scroll left"
+          onClick={() => scrollByAmount("left")}
+          sx={{
+            display: { xs: "none", md: "flex" },
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 8,
+            zIndex: 2,
+            width: { xs: 32, sm: 40 },
+            borderRadius: 0,
+            bgcolor: "rgba(0,0,0,0.72)",
+            color: "primary.main",
+            border: "1px solid rgba(255,255,255,0.12)",
+            "&:hover": {
+              bgcolor: "rgba(0,0,0,0.88)",
+            },
+          }}
+        >
+          <ChevronLeftIcon />
+        </IconButton>
+      )}
 
       <Box
         ref={ref}
@@ -159,28 +181,30 @@ export default function HorizontalScroller({
           : childArray}
       </Box>
 
-      <IconButton
-        aria-label="Scroll right"
-        onClick={() => scrollByAmount("right")}
-        sx={{
-          display: { xs: "none", md: "flex" },
-          position: "absolute",
-          right: 0,
-          top: 0,
-          bottom: 8,
-          zIndex: 2,
-          width: { xs: 32, sm: 40 },
-          borderRadius: 0,
-          bgcolor: "rgba(0,0,0,0.72)",
-          color: "primary.main",
-          border: "1px solid rgba(255,255,255,0.12)",
-          "&:hover": {
-            bgcolor: "rgba(0,0,0,0.88)",
-          },
-        }}
-      >
-        <ChevronRightIcon />
-      </IconButton>
+      {hasOverflow && (
+        <IconButton
+          aria-label="Scroll right"
+          onClick={() => scrollByAmount("right")}
+          sx={{
+            display: { xs: "none", md: "flex" },
+            position: "absolute",
+            right: 0,
+            top: 0,
+            bottom: 8,
+            zIndex: 2,
+            width: { xs: 32, sm: 40 },
+            borderRadius: 0,
+            bgcolor: "rgba(0,0,0,0.72)",
+            color: "primary.main",
+            border: "1px solid rgba(255,255,255,0.12)",
+            "&:hover": {
+              bgcolor: "rgba(0,0,0,0.88)",
+            },
+          }}
+        >
+          <ChevronRightIcon />
+        </IconButton>
+      )}
     </Box>
   );
 }

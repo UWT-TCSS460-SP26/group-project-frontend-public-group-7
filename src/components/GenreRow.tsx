@@ -8,9 +8,14 @@ import {
   CardContent,
   Typography,
 } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material/styles";
 import { useState } from "react";
 import HorizontalScroller from "@/components/HorizontalScroller";
 import MediaPreviewModal from "@/components/MediaPreviewModal";
+import {
+  formatDisplayYear,
+  formatDisplayYearFromDate,
+} from "@/lib/format-display-year";
 import type { GenreMediaItem } from "@/lib/group-media-by-genre";
 
 import type { MovieSummary, TVSummary } from "@/types/media";
@@ -20,9 +25,10 @@ type MediaItem = GenreMediaItem;
 interface Props {
   genre: string;
   items: MediaItem[];
+  headingSx?: SxProps<Theme>;
 }
 
-export default function GenreRow({ genre, items }: Props) {
+export default function GenreRow({ genre, items, headingSx }: Props) {
   const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
 
   return (
@@ -30,7 +36,7 @@ export default function GenreRow({ genre, items }: Props) {
       <Typography
         variant="h6"
         fontWeight="bold"
-        sx={{ mb: 1.5, color: "primary.main" }}
+        sx={{ mb: 1.5, color: "primary.main", ...headingSx }}
       >
         {genre}
       </Typography>
@@ -39,8 +45,8 @@ export default function GenreRow({ genre, items }: Props) {
         {items.map((item) => {
           const year =
             item._type === "movie"
-              ? ((item as MovieSummary).releaseYear?.toString() ?? null)
-              : ((item as TVSummary).firstAirDate?.slice(0, 4) ?? null);
+              ? formatDisplayYear((item as MovieSummary).releaseYear)
+              : formatDisplayYearFromDate((item as TVSummary).firstAirDate);
 
           return (
             <Card

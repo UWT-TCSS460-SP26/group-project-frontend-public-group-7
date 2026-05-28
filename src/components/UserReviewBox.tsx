@@ -12,16 +12,15 @@ import {
   Alert,
 } from "@mui/material";
 import { API_BASE } from "@/lib/api";
+import { censorProfanity } from "@/lib/censor-profanity";
 import type { MediaType } from "@/types/media";
 
 interface UserReviewBoxProps {
-  username: string;
   tmdbId: number;
   mediaType: MediaType;
 }
 
 export default function UserReviewBox({
-  username,
   tmdbId,
   mediaType,
 }: UserReviewBoxProps) {
@@ -52,8 +51,8 @@ export default function UserReviewBox({
         body: JSON.stringify({
           tmdbId,
           mediaType,
-          title: title.trim() || null,
-          body: body.trim(),
+          title: title.trim() ? censorProfanity(title.trim()) : null,
+          body: censorProfanity(body.trim()),
         }),
       });
 
@@ -86,13 +85,10 @@ export default function UserReviewBox({
       <Typography
         variant="h6"
         fontWeight="bold"
-        gutterBottom
         color="primary.main"
+        sx={{ mb: "20px" }}
       >
         Write a review
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Posting as {username}
       </Typography>
 
       {error && (
@@ -108,21 +104,31 @@ export default function UserReviewBox({
 
       <Box sx={{ display: "grid", gap: 1.5 }}>
         <TextField
-          label="Review title (optional)"
+          placeholder="Review title (optional)"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           fullWidth
           size="small"
           disabled={submitting}
+          slotProps={{
+            htmlInput: {
+              "aria-label": "Review title (optional)",
+            },
+          }}
         />
         <TextField
-          label="Comment or review"
+          placeholder="Comment or review"
           value={body}
           onChange={(event) => setBody(event.target.value)}
           fullWidth
           multiline
           minRows={4}
           disabled={submitting}
+          slotProps={{
+            htmlInput: {
+              "aria-label": "Comment or review",
+            },
+          }}
         />
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
           <Button

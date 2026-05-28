@@ -9,6 +9,10 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import type { MovieSummary, TVSummary } from "@/types/media";
+import {
+  formatDisplayYear,
+  formatDisplayYearFromDate,
+} from "@/lib/format-display-year";
 import { getGenreNameById } from "@/lib/media-filters";
 
 type Props =
@@ -17,12 +21,14 @@ type Props =
       item: MovieSummary;
       prioritizedGenreId?: string;
       seasonCount?: number | null;
+      hrefOverride?: string;
     }
   | {
       type: "tv";
       item: TVSummary;
       prioritizedGenreId?: string;
       seasonCount?: number | null;
+      hrefOverride?: string;
     };
 
 export default function MediaCard({
@@ -30,13 +36,14 @@ export default function MediaCard({
   item,
   prioritizedGenreId,
   seasonCount,
+  hrefOverride,
 }: Props) {
   const fallbackPoster =
     type === "movie" ? "/movie-placeholder.svg" : "/tv-placeholder.svg";
   const year =
     type === "movie"
-      ? ((item as MovieSummary).releaseYear?.toString() ?? null)
-      : ((item as TVSummary).firstAirDate?.slice(0, 4) ?? null);
+      ? formatDisplayYear((item as MovieSummary).releaseYear)
+      : formatDisplayYearFromDate((item as TVSummary).firstAirDate);
   const meta = [
     year,
     type === "tv" && seasonCount
@@ -46,7 +53,7 @@ export default function MediaCard({
     .filter(Boolean)
     .join(" • ");
 
-  const href = `/media/${type}/${item.id}`;
+  const href = hrefOverride ?? `/media/${type}/${item.id}`;
   const visibleGenres = (() => {
     const normalizedGenres = (item.genres ?? [])
       .map((genre) => ({

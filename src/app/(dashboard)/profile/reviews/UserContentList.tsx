@@ -4,14 +4,12 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Box,
-  Tabs,
   Typography,
   Paper,
   Stack,
   IconButton,
   Button,
   TextField,
-
   Dialog,
   DialogTitle,
   DialogContent,
@@ -31,6 +29,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { RatingRecord, ReviewRecord } from "@/types/media";
+import { censorProfanity } from "@/lib/censor-profanity";
 import {
   deleteRating,
   deleteReview,
@@ -38,6 +37,10 @@ import {
   updateReview,
 } from "@/lib/user-content-api";
 import { getMovieById, getTVShowById } from "@/lib/fetchAPI";
+import {
+  formatDisplayYear,
+  formatDisplayYearFromDate,
+} from "@/lib/format-display-year";
 
 interface UserContentListProps {
   initialRatings: RatingRecord[];
@@ -58,6 +61,11 @@ interface UnifiedItem {
   rating?: RatingRecord;
   review?: ReviewRecord;
   updatedAt: string;
+}
+
+function formatScoreOutOfFive(score: number) {
+  const outOfFive = score / 2;
+  return Number.isInteger(outOfFive) ? String(outOfFive) : outOfFive.toFixed(1);
 }
 
 export default function UserContentList({
@@ -132,7 +140,7 @@ export default function UserContentList({
               ...prev,
               [key]: {
                 title: data.title,
-                year: data.releaseYear,
+                year: formatDisplayYear(data.releaseYear),
                 posterUrl: data.posterUrl,
               },
             }));
@@ -142,7 +150,7 @@ export default function UserContentList({
               ...prev,
               [key]: {
                 title: data.title,
-                year: data.firstAirDate?.split("-")[0] || null,
+                year: formatDisplayYearFromDate(data.firstAirDate),
                 posterUrl: data.posterUrl,
               },
             }));
@@ -167,7 +175,7 @@ export default function UserContentList({
         await deleteReview(accessToken, deleteConfirm.id);
         setReviews((prev) => prev.filter((r) => r.id !== deleteConfirm.id));
       }
-    } catch (err) {
+    } catch {
       alert("Failed to delete item.");
     } finally {
       setDeleteConfirm(null);
@@ -182,7 +190,7 @@ export default function UserContentList({
       setRatings((prev) =>
         prev.map((r) => (r.id === updated.id ? updated : r)),
       );
-    } catch (err) {
+    } catch {
       alert("Failed to update rating.");
     } finally {
       setEditRating(null);
@@ -194,13 +202,13 @@ export default function UserContentList({
 
     try {
       const updated = await updateReview(accessToken, editReview.id, {
-        title,
-        body,
+        title: title.trim() ? censorProfanity(title.trim()) : "",
+        body: censorProfanity(body),
       });
       setReviews((prev) =>
         prev.map((r) => (r.id === updated.id ? updated : r)),
       );
-    } catch (err) {
+    } catch {
       alert("Failed to update review.");
     } finally {
       setEditReview(null);
@@ -305,7 +313,7 @@ export default function UserContentList({
                             color="primary.main"
                             sx={{ ml: 1, fontWeight: 600 }}
                           >
-                            {item.rating.score}/10
+                            {formatScoreOutOfFive(item.rating.score)}/5
                           </Typography>
                           <IconButton
                             size="small"
@@ -350,7 +358,7 @@ export default function UserContentList({
                               fontWeight={700}
                               gutterBottom
                             >
-                              {item.review.title}
+                              {censorProfanity(item.review.title)}
                             </Typography>
                           )}
                           <Typography
@@ -364,7 +372,7 @@ export default function UserContentList({
                               whiteSpace: "pre-wrap",
                             }}
                           >
-                            {item.review.body}
+                            {censorProfanity(item.review.body)}
                           </Typography>
                           <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
                             <Button
@@ -448,7 +456,7 @@ export default function UserContentList({
               emptyIcon={<StarBorderIcon fontSize="inherit" />}
             />
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {editRating ? editRating.score : 0}/10
+              {editRating ? formatScoreOutOfFive(editRating.score) : 0}/5
             </Typography>
           </Box>
         </DialogContent>

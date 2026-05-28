@@ -16,9 +16,11 @@ import UserAccountMenu from "@/components/UserAccountMenu";
 import { getPopularMovies, getPopularTVShows } from "@/lib/fetchAPI";
 import { groupByGenre, type GenreMediaItem } from "@/lib/group-media-by-genre";
 import { popularMoviesMultiPage, popularTVMultiPage } from "@/lib/media-api";
+import { getMovieRecommendationsFromRatings } from "@/lib/recommendations";
 import { auth } from "@/lib/auth";
 import { APP_CONFIG } from "@/config";
 import { MovieCard, TVShowCard } from "@/types/backendObjects";
+import { getAllMyRatings } from "@/lib/user-content-api";
 
 /**
  * Public landing page.
@@ -30,6 +32,10 @@ export default async function HomePage() {
   let movies: MovieCard[] = [];
   let tvShows: TVShowCard[] = [];
   let genreRows: [string, GenreMediaItem[]][] = [];
+  let recommendedMovies: Awaited<
+    ReturnType<typeof getMovieRecommendationsFromRatings>
+  > = [];
+  let totalRatingsCount = 0;
   let browseError = false;
   try {
     const [movieRes, tvRes, browseMovies, browseTV] = await Promise.all([
@@ -47,6 +53,18 @@ export default async function HomePage() {
   } catch (e) {
     console.error("Failed to fetch media for home page:", e);
     browseError = true;
+  }
+
+  if (session?.accessToken) {
+    try {
+      const ratings = await getAllMyRatings(session.accessToken);
+      totalRatingsCount = ratings.length;
+      if (totalRatingsCount >= 10) {
+        recommendedMovies = await getMovieRecommendationsFromRatings(ratings);
+      }
+    } catch (error) {
+      console.error("Failed to build home page recommendations:", error);
+    }
   }
 
   return (
@@ -119,8 +137,8 @@ export default async function HomePage() {
         </Container>
       </AppBar>
 
-      <Container maxWidth={false} sx={{ py: 4, px: { xs: 2, sm: 3, md: 4 } }}>
-        <Box sx={{ mb: 6 }}>
+      <Container maxWidth={false} sx={{ py: 5, px: { xs: 2, sm: 3, md: 4 } }}>
+        <Box sx={{ mb: { xs: 7, md: 9 } }}>
           <Typography
             variant="h4"
             sx={{
@@ -128,20 +146,19 @@ export default async function HomePage() {
               mb: 2,
               textAlign: "left",
               fontWeight: "bold",
+              fontSize: { xs: "2.1rem", md: "3rem" },
             }}
           >
             Popular Movies
           </Typography>
-          <Box sx={{ mx: { xs: -2, sm: -3, md: -4 } }}>
-            <MediaCarousel
-              items={movies}
-              mediaType="movie"
-              infinite={movies.length >= 10}
-            />
-          </Box>
+          <MediaCarousel
+            items={movies}
+            mediaType="movie"
+            infinite={movies.length >= 10}
+          />
         </Box>
 
-        <Box sx={{ mb: 6 }}>
+        <Box sx={{ mb: { xs: 7, md: 9 } }}>
           <Typography
             variant="h4"
             sx={{
@@ -149,32 +166,67 @@ export default async function HomePage() {
               mb: 2,
               textAlign: "left",
               fontWeight: "bold",
+              fontSize: { xs: "2.1rem", md: "3rem" },
             }}
           >
             Popular TV Shows
           </Typography>
-          <Box sx={{ mx: { xs: -2, sm: -3, md: -4 } }}>
-            <MediaCarousel
-              items={tvShows}
-              mediaType="tv"
-              infinite={tvShows.length >= 10}
-            />
-          </Box>
+          <MediaCarousel
+            items={tvShows}
+            mediaType="tv"
+            infinite={tvShows.length >= 10}
+          />
         </Box>
 
-        <Stack spacing={3}>
-          <Box>
+        {user && (
+          <Box sx={{ mb: { xs: 7, md: 9 } }}>
             <Typography
-              variant="h5"
+              variant="h4"
+              sx={{
+                color: "primary.main",
+                mb: 1,
+                textAlign: "left",
+                fontWeight: "bold",
+                fontSize: { xs: "2.1rem", md: "3rem" },
+              }}
+            >
+              Recommended for You
+            </Typography>
+
+            {recommendedMovies.length > 0 ? (
+              <GenreRow
+                genre="Because you rated similar titles highly"
+                items={recommendedMovies}
+                headingSx={{
+                  color: "text.secondary",
+                  fontWeight: 600,
+                  letterSpacing: 0.2,
+                }}
+              />
+            ) : totalRatingsCount < 10 ? (
+              <Typography color="text.secondary">
+                {totalRatingsCount > 0
+                  ? `You have rated ${totalRatingsCount} title${totalRatingsCount === 1 ? "" : "s"}. Rate at least ${10 - totalRatingsCount} more title${10 - totalRatingsCount === 1 ? "" : "s"} to unlock personalized recommendations.`
+                  : "Rate at least 10 titles to get personalized movie and TV show recommendations."}
+              </Typography>
+            ) : (
+              <Typography color="text.secondary">
+                We couldn&apos;t build recommendations yet from your current
+                ratings. Try rating a few more titles to strengthen the list.
+              </Typography>
+            )}
+          </Box>
+        )}
+
+        <Stack spacing={{ xs: 4, md: 5 }}>
+          <Box sx={{ mb: "-30px" }}>
+            <Typography
+              variant="h4"
               component="h2"
               fontWeight="bold"
-              gutterBottom
-              sx={{ color: "primary.main" }}
+              sx={{ color: "primary.main", fontSize: { xs: "2.1rem", md: "3rem" } }}
             >
               Explore
-            </Typography>
-            <Typography color="text.secondary">
-              Browse trending movies and TV shows by genre.
             </Typography>
           </Box>
 

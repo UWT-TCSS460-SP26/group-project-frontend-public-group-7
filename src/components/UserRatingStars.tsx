@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Box, CircularProgress, Rating, Typography } from "@mui/material";
+import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 
 import { API_BASE } from "@/lib/api";
@@ -179,12 +180,21 @@ export default function UserRatingStars({
             max={max}
             precision={0.5}
             onChange={(_, nextValue) => void handleChange(nextValue)}
+            icon={<StarIcon fontSize="inherit" />}
             emptyIcon={<StarBorderIcon fontSize="inherit" />}
             disabled={submitting}
             sx={{
-              color: "primary.main",
+              "& .MuiRating-iconFilled": {
+                color: "primary.main",
+              },
+              "& .MuiRating-iconHover": {
+                color: "primary.main",
+              },
+              "& .MuiRating-iconFocus": {
+                color: "primary.main",
+              },
               "& .MuiRating-iconEmpty": {
-                color: "rgba(255,255,255,0.35)",
+                color: "rgba(255,255,255,0.22)",
               },
             }}
           />

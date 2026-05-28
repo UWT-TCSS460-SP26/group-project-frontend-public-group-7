@@ -10,6 +10,7 @@ import {
 import AppNavBar from "@/components/AppNavBar";
 import MediaCard from "@/components/MediaCard";
 import { APP_CONFIG } from "@/config";
+import { getMovieById, getTVShowById } from "@/lib/fetchAPI";
 import { searchMoviesByCast, searchTVByCast } from "@/lib/media-api";
 import type { MovieSummary, TVSummary } from "@/types/media";
 
@@ -67,12 +68,126 @@ function dedupeById<T extends { id: number }>(items: T[]) {
   });
 }
 
+interface CastContext {
+  name: string;
+  character: string;
+  profileUrl: string | null;
+}
+
+function normalizeName(value: string) {
+  return value.trim().toLocaleLowerCase();
+}
+
+async function buildMovieCastContextMap(
+  items: MovieSummary[],
+  castName: string,
+  castImage: string,
+) {
+  const normalizedName = normalizeName(castName);
+  const entries = await Promise.allSettled(
+    items.map(async (item) => {
+      const detail = await getMovieById(item.id);
+      const matchedCastMember = detail.cast.find(
+        (member) => normalizeName(member.name) === normalizedName,
+      );
+
+      if (!matchedCastMember) {
+        return null;
+      }
+
+      return [
+        item.id,
+        {
+          name: matchedCastMember.name,
+          character: matchedCastMember.character,
+          profileUrl: matchedCastMember.profileUrl ?? (castImage || null),
+        },
+      ] as const;
+    }),
+  );
+
+  return new Map(
+    entries
+      .filter(
+        (
+          entry,
+        ): entry is PromiseFulfilledResult<
+          readonly [number, CastContext] | null
+        > => entry.status === "fulfilled",
+      )
+      .map((entry) => entry.value)
+      .filter((entry): entry is readonly [number, CastContext] => entry !== null),
+  );
+}
+
+async function buildTVCastContextMap(
+  items: TVSummary[],
+  castName: string,
+  castImage: string,
+) {
+  const normalizedName = normalizeName(castName);
+  const entries = await Promise.allSettled(
+    items.map(async (item) => {
+      const detail = await getTVShowById(item.id);
+      const matchedCastMember = detail.cast.find(
+        (member) => normalizeName(member.name) === normalizedName,
+      );
+
+      if (!matchedCastMember) {
+        return null;
+      }
+
+      return [
+        item.id,
+        {
+          name: matchedCastMember.name,
+          character: matchedCastMember.character,
+          profileUrl: matchedCastMember.profileUrl ?? (castImage || null),
+        },
+      ] as const;
+    }),
+  );
+
+  return new Map(
+    entries
+      .filter(
+        (
+          entry,
+        ): entry is PromiseFulfilledResult<
+          readonly [number, CastContext] | null
+        > => entry.status === "fulfilled",
+      )
+      .map((entry) => entry.value)
+      .filter((entry): entry is readonly [number, CastContext] => entry !== null),
+  );
+}
+
+function buildMediaHref(
+  type: "movie" | "tv",
+  id: number,
+  castContext?: CastContext,
+) {
+  if (!castContext) {
+    return `/media/${type}/${id}`;
+  }
+
+  const params = new URLSearchParams({
+    castName: castContext.name,
+    castCharacter: castContext.character,
+    castImage: castContext.profileUrl ?? "",
+  });
+
+  return `/media/${type}/${id}?${params.toString()}`;
+}
+
 function ResultsGrid({
   items,
   type,
+  castContexts,
 }: {
   items: MovieSummary[] | TVSummary[];
   type: "movie" | "tv";
+  castContexts?: Map<number, CastContext>;
 }) {
   return (
     <Box
@@ -93,6 +208,7 @@ function ResultsGrid({
           key={`${type}-${item.id}`}
           type={type}
           item={item as MovieSummary & TVSummary}
+          hrefOverride={buildMediaHref(type, item.id, castContexts?.get(item.id))}
         />
       ))}
     </Box>
@@ -115,6 +231,10 @@ export default async function CastFilmographyPage({
 
   const dedupedMovies = dedupeById(movies);
   const dedupedTVShows = dedupeById(tvShows);
+  const [movieCastContexts, tvCastContexts] = await Promise.all([
+    buildMovieCastContextMap(dedupedMovies, castName, castImage),
+    buildTVCastContextMap(dedupedTVShows, castName, castImage),
+  ]);
   const totalTitles = dedupedMovies.length + dedupedTVShows.length;
 
   return (
@@ -176,7 +296,11 @@ export default async function CastFilmographyPage({
               Movies
             </Typography>
             {dedupedMovies.length > 0 ? (
-              <ResultsGrid items={dedupedMovies} type="movie" />
+              <ResultsGrid
+                items={dedupedMovies}
+                type="movie"
+                castContexts={movieCastContexts}
+              />
             ) : (
               <Typography color="text.secondary">
                 No movie credits found.
@@ -196,7 +320,11 @@ export default async function CastFilmographyPage({
               TV Shows
             </Typography>
             {dedupedTVShows.length > 0 ? (
-              <ResultsGrid items={dedupedTVShows} type="tv" />
+              <ResultsGrid
+                items={dedupedTVShows}
+                type="tv"
+                castContexts={tvCastContexts}
+              />
             ) : (
               <Typography color="text.secondary">
                 No TV credits found.

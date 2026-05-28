@@ -19,6 +19,10 @@ import PersonIcon from "@mui/icons-material/Person";
 
 import { MovieDetail, TVShowDetail } from "@/types/backendObjects";
 import { getMovieById, getTVShowById } from "@/lib/fetchAPI";
+import {
+  formatDisplayYear,
+  formatDisplayYearFromDate,
+} from "@/lib/format-display-year";
 import { getTitleRatings } from "@/lib/media-api";
 
 interface MediaPreviewModalProps {
@@ -162,12 +166,10 @@ export default function MediaPreviewModal({
                     </Typography>
                     <Typography variant="subtitle1">
                       {mediaType === "movie"
-                        ? (detail as MovieDetail).releaseYear
-                        : (detail as TVShowDetail).firstAirDate
-                          ? new Date(
-                              (detail as TVShowDetail).firstAirDate,
-                            ).getFullYear()
-                          : "Unknown year"}
+                        ? formatDisplayYear((detail as MovieDetail).releaseYear)
+                        : formatDisplayYearFromDate(
+                            (detail as TVShowDetail).firstAirDate,
+                          )}
                       {mediaType === "movie" &&
                         ` • ${(detail as MovieDetail).runtimeMinutes ?? "?"} min`}
                       {mediaType === "tv" &&
@@ -194,7 +196,7 @@ export default function MediaPreviewModal({
                     <Chip
                       label={
                         communityRating == null
-                          ? "Members No Rating"
+                          ? "Members: No Ratings"
                           : `Members ${(communityRating / 2).toFixed(1)}/5`
                       }
                       color="secondary"
