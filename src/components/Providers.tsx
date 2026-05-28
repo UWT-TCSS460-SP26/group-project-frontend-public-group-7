@@ -2,7 +2,7 @@
 
 import { SessionProvider } from "next-auth/react";
 import type { ReactNode } from "react";
-import AutoSignOutOnExit from "./AutoSignOutOnExit";
+// import AutoSignOutOnExit from "./AutoSignOutOnExit";
 
 /**
  * Client-side wrapper for NextAuth's SessionProvider so client components
@@ -11,7 +11,7 @@ import AutoSignOutOnExit from "./AutoSignOutOnExit";
 export default function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
-      <AutoSignOutOnExit />
+      {/* <AutoSignOutOnExit /> */}
       {children}
     </SessionProvider>
   );
