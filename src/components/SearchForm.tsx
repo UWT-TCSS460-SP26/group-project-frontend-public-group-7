@@ -127,6 +127,7 @@ export default function SearchForm({
       sx={{
         display: "flex",
         gap: compact ? 1 : 2,
+        rowGap: compact ? 1 : 2,
         flexWrap: "wrap",
         alignItems: "center",
         width: compact ? "100%" : "auto",
@@ -146,7 +147,10 @@ export default function SearchForm({
         size="small"
         sx={{
           flexGrow: 1,
-          minWidth: compact ? { xs: "100%", md: 520 } : { xs: "100%", sm: 260 },
+          width: { xs: "100%", md: "auto" },
+          minWidth: compact
+            ? { xs: "100%", md: 640, lg: 820 }
+            : { xs: "100%", sm: 260 },
           "& .MuiFormHelperText-root": {
             color: "text.disabled",
           },
@@ -161,6 +165,7 @@ export default function SearchForm({
         onClick={(e) => setAnchorEl(e.currentTarget)}
         sx={{
           whiteSpace: "nowrap",
+          flexGrow: { xs: compact ? 1 : 0, sm: 0 },
           width: { xs: compact ? "calc(50% - 4px)" : "auto", sm: "auto" },
         }}
       >
@@ -174,6 +179,7 @@ export default function SearchForm({
         disabled={!canSearch}
         sx={{
           whiteSpace: "nowrap",
+          flexGrow: { xs: compact ? 1 : 0, sm: 0 },
           width: { xs: compact ? "calc(50% - 4px)" : "auto", sm: "auto" },
         }}
       >
