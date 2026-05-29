@@ -12,6 +12,11 @@ import {
   Alert,
 } from "@mui/material";
 import { API_BASE } from "@/lib/api";
+import {
+  checkForNewAwards,
+  getAwardStorageKey,
+  getAwardUserKey,
+} from "@/lib/award-unlocks";
 import { censorProfanity } from "@/lib/censor-profanity";
 import type { MediaType } from "@/types/media";
 
@@ -58,6 +63,14 @@ export default function UserReviewBox({
 
       if (!response.ok) {
         throw new Error(`Failed to post review: ${response.status}`);
+      }
+
+      const userKey = getAwardUserKey(session.user);
+      if (userKey) {
+        await checkForNewAwards(
+          session.accessToken,
+          getAwardStorageKey(userKey),
+        );
       }
 
       setTitle("");

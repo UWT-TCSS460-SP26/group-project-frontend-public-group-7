@@ -245,6 +245,7 @@ function getAwardSection(award: ProfileAward) {
   return "total";
 }
 
+
 function getTopUnlockedAwardsBySection(awards: ProfileAward[]) {
   const topBySection = new Map<string, ProfileAward>();
 
@@ -274,7 +275,7 @@ function getSectionLabel(section: "ratings" | "reviews" | "total") {
   return "Next contribution award";
 }
 
-function BadgeArt({
+export function BadgeArt({
   award,
   compact = false,
 }: {

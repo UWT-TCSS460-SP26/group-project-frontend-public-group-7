@@ -8,6 +8,11 @@ import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 
 import { API_BASE } from "@/lib/api";
+import {
+  checkForNewAwards,
+  getAwardStorageKey,
+  getAwardUserKey,
+} from "@/lib/award-unlocks";
 import type { MediaType } from "@/types/media";
 
 interface UserRatingStarsProps {
@@ -131,6 +136,14 @@ export default function UserRatingStars({
 
       if (!response.ok) {
         throw new Error(`Failed to save rating: ${response.status}`);
+      }
+
+      const userKey = getAwardUserKey(session.user);
+      if (userKey) {
+        await checkForNewAwards(
+          session.accessToken,
+          getAwardStorageKey(userKey),
+        );
       }
 
       router.refresh();
