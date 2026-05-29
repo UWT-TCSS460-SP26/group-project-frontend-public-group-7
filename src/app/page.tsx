@@ -89,19 +89,17 @@ export default async function HomePage() {
               sx={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: 1.25,
-                pt: { xs: 0, md: 0.9 },
+                gap: 1.5,
+                pt: { xs: 0, md: 0.35 },
               }}
             >
-              <MovieIcon
-                sx={{ color: "primary.main", fontSize: 42, mt: 0.2 }}
-              />
+              <MovieIcon sx={{ color: "primary.main", fontSize: 32, mt: 0.1 }} />
               <Box
                 sx={{
                   display: { xs: "none", sm: "flex" },
                   flexDirection: "column",
                   justifyContent: "flex-start",
-                  ml: -6.6,
+                  ml: -5.2,
                   mt: 0.1,
                 }}
               >
@@ -109,12 +107,12 @@ export default async function HomePage() {
                   sx={{
                     display: "flex",
                     alignItems: "center",
-                    minHeight: 42,
-                    pl: 6.6,
+                    minHeight: 32,
+                    pl: 5.2,
                   }}
                 >
                   <Typography
-                    variant="h4"
+                    variant="h6"
                     component="div"
                     sx={{
                       color: "primary.main",

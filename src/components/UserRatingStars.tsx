@@ -194,7 +194,7 @@ export default function UserRatingStars({
                 color: "primary.main",
               },
               "& .MuiRating-iconEmpty": {
-                color: "rgba(255,255,255,0.22)",
+                color: "rgba(255, 193, 7, 0.45)",
               },
             }}
           />

@@ -23,6 +23,7 @@ import {
   formatDisplayYear,
   formatDisplayYearFromDate,
 } from "@/lib/format-display-year";
+import { formatRatingOutOfFive } from "@/lib/format-rating-out-of-five";
 import { getTitleRatings } from "@/lib/media-api";
 
 interface MediaPreviewModalProps {
@@ -197,7 +198,7 @@ export default function MediaPreviewModal({
                       label={
                         communityRating == null
                           ? "Members: No Ratings"
-                          : `Members ${(communityRating / 2).toFixed(1)}/5`
+                          : `Members ${formatRatingOutOfFive(communityRating)}/5`
                       }
                       color="secondary"
                       size="small"

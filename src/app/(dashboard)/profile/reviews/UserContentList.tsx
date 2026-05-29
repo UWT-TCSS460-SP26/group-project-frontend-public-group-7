@@ -304,7 +304,7 @@ export default function UserContentList({
                             emptyIcon={
                               <StarBorderIcon
                                 fontSize="inherit"
-                                sx={{ color: "rgba(255,255,255,0.3)" }}
+                                sx={{ color: "rgba(255, 193, 7, 0.45)" }}
                               />
                             }
                           />
@@ -453,7 +453,12 @@ export default function UserContentList({
                   void handleUpdateRating(Math.round(value * 2));
                 }
               }}
-              emptyIcon={<StarBorderIcon fontSize="inherit" />}
+              emptyIcon={
+                <StarBorderIcon
+                  fontSize="inherit"
+                  sx={{ color: "rgba(255, 193, 7, 0.45)" }}
+                />
+              }
             />
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               {editRating ? formatScoreOutOfFive(editRating.score) : 0}/5

@@ -34,6 +34,7 @@ import {
   formatDisplayYear,
   formatDisplayYearFromDate,
 } from "@/lib/format-display-year";
+import { formatRatingOutOfFive } from "@/lib/format-rating-out-of-five";
 import type {
   MovieDetail as RawMovieDetail,
   TVShowDetail as RawTVShowDetail,
@@ -488,7 +489,7 @@ export default async function MediaDetailPage({
                 <StarIcon sx={{ color: "primary.main" }} />
                 <Typography fontWeight="bold" fontSize="1.1rem">
                   {ratingsAverage != null
-                    ? `${(ratingsAverage / 2).toFixed(1)}/5`
+                    ? `${formatRatingOutOfFive(ratingsAverage)}/5`
                     : "No ratings yet"}
                 </Typography>
                 {ratingsCount > 0 && (
