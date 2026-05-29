@@ -125,80 +125,94 @@ export default function SearchForm({
       component="form"
       onSubmit={handleSubmit}
       sx={{
-        display: "flex",
-        gap: compact ? 1 : 2,
-        rowGap: compact ? 1 : 2,
-        flexWrap: "wrap",
-        alignItems: "center",
+        display: "grid",
+        gridTemplateRows: "auto 1.2em",
+        rowGap: compact ? 0.75 : 1,
+        alignItems: "start",
         width: compact ? "100%" : "auto",
       }}
     >
-      <TextField
-        placeholder="Search by title or cast member"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            runSearch();
-          }
-        }}
-        variant="outlined"
-        size="small"
+      <Box
         sx={{
-          flexGrow: 1,
-          width: { xs: "100%", md: "auto" },
-          minWidth: compact
-            ? { xs: "100%", md: 640, lg: 820 }
-            : { xs: "100%", sm: 260 },
-          "& .MuiFormHelperText-root": {
-            color: "text.disabled",
-          },
-        }}
-        autoFocus={!compact}
-      />
-
-      <Button
-        type="button"
-        variant="outlined"
-        startIcon={<TuneIcon />}
-        onClick={(e) => setAnchorEl(e.currentTarget)}
-        sx={{
-          whiteSpace: "nowrap",
-          flexGrow: { xs: compact ? 1 : 0, sm: 0 },
-          width: { xs: compact ? "calc(50% - 4px)" : "auto", sm: "auto" },
+          display: "flex",
+          gap: compact ? 1 : 2,
+          rowGap: compact ? 1 : 2,
+          flexWrap: "wrap",
+          alignItems: "center",
+          width: "100%",
         }}
       >
-        Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-      </Button>
+        <TextField
+          placeholder="Search by title or cast member"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              runSearch();
+            }
+          }}
+          variant="outlined"
+          size="small"
+          sx={{
+            flexGrow: 1,
+            width: { xs: "100%", md: "auto" },
+            minWidth: compact
+              ? { xs: "100%", md: 640, lg: 820 }
+              : { xs: "100%", sm: 260 },
+            "& .MuiFormHelperText-root": {
+              color: "text.disabled",
+            },
+          }}
+          autoFocus={!compact}
+        />
 
-      <Button
-        type="submit"
-        variant="contained"
-        startIcon={<SearchIcon />}
-        disabled={!canSearch}
-        sx={{
-          whiteSpace: "nowrap",
-          flexGrow: { xs: compact ? 1 : 0, sm: 0 },
-          width: { xs: compact ? "calc(50% - 4px)" : "auto", sm: "auto" },
-        }}
-      >
-        Search
-      </Button>
-
-      {signInCallbackUrl && (
-        <HomeSignInButton callbackUrl={signInCallbackUrl} />
-      )}
-
-      {!!filterSummary && (
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ width: "100%" }}
+        <Button
+          type="button"
+          variant="outlined"
+          startIcon={<TuneIcon />}
+          onClick={(e) => setAnchorEl(e.currentTarget)}
+          sx={{
+            whiteSpace: "nowrap",
+            flexGrow: { xs: compact ? 1 : 0, sm: 0 },
+            width: { xs: compact ? "calc(50% - 4px)" : "auto", sm: "auto" },
+          }}
         >
-          Active filters: {filterSummary}
-        </Typography>
-      )}
+          Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+        </Button>
+
+        <Button
+          type="submit"
+          variant="contained"
+          startIcon={<SearchIcon />}
+          disabled={!canSearch}
+          sx={{
+            whiteSpace: "nowrap",
+            flexGrow: { xs: compact ? 1 : 0, sm: 0 },
+            width: { xs: compact ? "calc(50% - 4px)" : "auto", sm: "auto" },
+          }}
+        >
+          Search
+        </Button>
+
+        {signInCallbackUrl && (
+          <HomeSignInButton callbackUrl={signInCallbackUrl} />
+        )}
+      </Box>
+
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{
+          width: "100%",
+          height: "1.2em",
+          lineHeight: 1.2,
+          visibility: filterSummary ? "visible" : "hidden",
+          overflow: "hidden",
+        }}
+      >
+        {filterSummary ? `Active filters: ${filterSummary}` : " "}
+      </Typography>
 
       <Popover
         open={open}

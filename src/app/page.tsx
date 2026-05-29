@@ -77,9 +77,22 @@ export default async function HomePage() {
         <Container maxWidth={false} sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
           <Toolbar
             disableGutters
-            sx={{ justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}
+            sx={{
+              justifyContent: "space-between",
+              gap: 2,
+              flexWrap: "wrap",
+              alignItems: { xs: "stretch", md: "flex-start" },
+              py: { xs: 1, md: 1.25 },
+            }}
           >
-            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.25 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 1.25,
+                pt: { xs: 0, md: 0.9 },
+              }}
+            >
               <MovieIcon
                 sx={{ color: "primary.main", fontSize: 42, mt: 0.2 }}
               />
@@ -130,8 +143,8 @@ export default async function HomePage() {
             <Box
               sx={{
                 flex: 1,
-                minWidth: { xs: "100%", md: 560 },
-                maxWidth: { xs: "100%", md: 1120 },
+                minWidth: { xs: "100%", md: 612 },
+                maxWidth: { xs: "100%", md: "none" },
                 order: { xs: 3, md: 2 },
               }}
             >
@@ -142,7 +155,11 @@ export default async function HomePage() {
               direction="row"
               spacing={2}
               alignItems="center"
-              sx={{ order: { xs: 2, md: 3 } }}
+              sx={{
+                order: { xs: 2, md: 3 },
+                alignSelf: { xs: "flex-end", md: "flex-start" },
+                minHeight: 40,
+              }}
             >
               {user && (
                 <Typography
