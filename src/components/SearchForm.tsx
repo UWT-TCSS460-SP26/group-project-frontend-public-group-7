@@ -136,6 +136,12 @@ export default function SearchForm({
         placeholder="Search by title or cast member"
         value={q}
         onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            runSearch();
+          }
+        }}
         variant="outlined"
         size="small"
         sx={{
