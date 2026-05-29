@@ -15,28 +15,28 @@ import {
   Typography,
 } from "@mui/material";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
-import LocalFireDepartmentIcon from "@mui/icons-material/LocalFireDepartment";
 
 import type { ProfileAward } from "@/lib/profile-awards";
 
 interface ProfileAwardsPanelProps {
   awards: ProfileAward[];
   unlockedCount: number;
-  nextMilestone: string;
 }
 
 export default function ProfileAwardsPanel({
   awards,
   unlockedCount,
-  nextMilestone,
 }: ProfileAwardsPanelProps) {
   const [open, setOpen] = useState(false);
 
-  const unlockedAwards = useMemo(
-    () => awards.filter((award) => award.unlocked),
+  const topUnlockedAwards = useMemo(
+    () => getTopUnlockedAwardsBySection(awards),
     [awards],
   );
-  const featuredAwards = unlockedAwards.slice(0, 6);
+  const nextAwardsBySection = useMemo(
+    () => getNextAwardsBySection(awards),
+    [awards],
+  );
 
   return (
     <>
@@ -81,18 +81,6 @@ export default function ProfileAwardsPanel({
                 color="primary"
                 variant="outlined"
               />
-              <Chip
-                icon={<LocalFireDepartmentIcon />}
-                label={nextMilestone}
-                sx={{
-                  maxWidth: "100%",
-                  "& .MuiChip-label": {
-                    display: "block",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  },
-                }}
-              />
             </Stack>
 
             <Button variant="contained" onClick={() => setOpen(true)}>
@@ -101,8 +89,8 @@ export default function ProfileAwardsPanel({
           </Stack>
 
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {featuredAwards.length > 0 ? (
-              featuredAwards.map((award) => (
+            {topUnlockedAwards.length > 0 ? (
+              topUnlockedAwards.map((award) => (
                 <Tooltip
                   key={award.id}
                   arrow
@@ -161,6 +149,24 @@ export default function ProfileAwardsPanel({
                 No badges unlocked yet. Your first rating will earn one.
               </Typography>
             )}
+          </Stack>
+
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            {nextAwardsBySection.map(({ section, award }) => (
+              <Chip
+                key={section}
+                label={`${getSectionLabel(section)}: ${award ? award.requirement : "All awards unlocked"}`}
+                variant="outlined"
+                sx={{
+                  maxWidth: "100%",
+                  "& .MuiChip-label": {
+                    display: "block",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  },
+                }}
+              />
+            ))}
           </Stack>
         </Stack>
       </Paper>
@@ -231,6 +237,41 @@ export default function ProfileAwardsPanel({
       </Dialog>
     </>
   );
+}
+
+function getAwardSection(award: ProfileAward) {
+  if (award.id.startsWith("ratings-")) return "ratings";
+  if (award.id.startsWith("reviews-")) return "reviews";
+  return "total";
+}
+
+function getTopUnlockedAwardsBySection(awards: ProfileAward[]) {
+  const topBySection = new Map<string, ProfileAward>();
+
+  awards.forEach((award) => {
+    if (!award.unlocked) return;
+
+    topBySection.set(getAwardSection(award), award);
+  });
+
+  return ["ratings", "reviews", "total"]
+    .map((section) => topBySection.get(section))
+    .filter((award): award is ProfileAward => Boolean(award));
+}
+
+function getNextAwardsBySection(awards: ProfileAward[]) {
+  return (["ratings", "reviews", "total"] as const).map((section) => ({
+    section,
+    award: awards.find(
+      (award) => getAwardSection(award) === section && !award.unlocked,
+    ),
+  }));
+}
+
+function getSectionLabel(section: "ratings" | "reviews" | "total") {
+  if (section === "ratings") return "Next rating award";
+  if (section === "reviews") return "Next review award";
+  return "Next contribution award";
 }
 
 function BadgeArt({

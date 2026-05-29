@@ -331,7 +331,6 @@ export default async function ProfilePage() {
           <ProfileAwardsPanel
             awards={awardsSummary.awards}
             unlockedCount={awardsSummary.unlockedCount}
-            nextMilestone={awardsSummary.nextMilestone}
           />
         </Stack>
       </Container>
