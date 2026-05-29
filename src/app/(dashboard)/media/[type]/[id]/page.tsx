@@ -751,16 +751,24 @@ export default async function MediaDetailPage({
                 >
                   Recent Reviews
                 </Typography>
-                <Stack spacing={2}>
-                  {community.recentReviews.map((r) => (
-                    <ReviewExcerpt
-                      key={r.id}
-                      title={r.title}
-                      body={r.body}
-                      author={r.author}
-                    />
-                  ))}
-                </Stack>
+                <Box
+                  sx={{
+                    maxHeight: 560,
+                    overflowY: "auto",
+                    pr: 1,
+                  }}
+                >
+                  <Stack spacing={2.5}>
+                    {community.recentReviews.map((r) => (
+                      <ReviewExcerpt
+                        key={r.id}
+                        title={r.title}
+                        body={r.body}
+                        author={r.author}
+                      />
+                    ))}
+                  </Stack>
+                </Box>
               </Box>
             </>
           )}

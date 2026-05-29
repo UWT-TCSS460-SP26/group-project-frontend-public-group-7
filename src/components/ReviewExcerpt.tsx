@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import { censorProfanity } from "@/lib/censor-profanity";
-import { formatDisplayName } from "@/lib/format-display-name";
 import type { ReviewAuthor } from "@/types/media";
 
 interface ReviewExcerptProps {
@@ -23,17 +22,25 @@ export default function ReviewExcerpt({
 
   const authorName = useMemo(() => {
     if (!author) return "Unknown user";
-    if (typeof author === "string") return formatDisplayName(author);
-    return formatDisplayName(author.name ?? author.username);
+    if (typeof author === "string") return author.trim() || "Unknown user";
+    return (author.name ?? author.username)?.trim() || "Unknown user";
   }, [author]);
 
   const isLong = body.length > MAX_PREVIEW_CHARS;
   const censoredTitle = title ? censorProfanity(title) : null;
   const censoredBody = censorProfanity(body);
+  const bodyParagraphs = censoredBody
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
   const previewBody =
     isLong && !expanded
       ? `${censoredBody.slice(0, MAX_PREVIEW_CHARS).trimEnd()}...`
       : censoredBody;
+  const previewParagraphs = previewBody
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
 
   return (
     <Box
@@ -41,6 +48,8 @@ export default function ReviewExcerpt({
         bgcolor: "background.paper",
         borderRadius: 2,
         p: 2,
+        border: "1px solid",
+        borderColor: "divider",
       }}
     >
       {censoredTitle ? (
@@ -49,20 +58,36 @@ export default function ReviewExcerpt({
         </Typography>
       ) : null}
 
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ whiteSpace: "pre-line" }}
+      <Box
+        sx={{
+          maxHeight: expanded && isLong ? 240 : "none",
+          overflowY: expanded && isLong ? "auto" : "visible",
+          pr: expanded && isLong ? 0.75 : 0,
+        }}
       >
-        {previewBody}
-        {"\n"}
-        <Box
-          component="span"
-          sx={{ display: "block", mt: 1, fontStyle: "italic" }}
-        >
-          - {authorName}
+        <Box sx={{ display: "grid", gap: 1.25 }}>
+          {(expanded ? bodyParagraphs : previewParagraphs).map(
+            (paragraph, index) => (
+              <Typography
+                key={`${index}-${paragraph.slice(0, 24)}`}
+                variant="body2"
+                color="text.secondary"
+                sx={{ whiteSpace: "pre-line", lineHeight: 1.7 }}
+              >
+                {paragraph}
+              </Typography>
+            ),
+          )}
+
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontStyle: "italic", pt: 0.25 }}
+          >
+            - {authorName}
+          </Typography>
         </Box>
-      </Typography>
+      </Box>
 
       {isLong ? (
         <Button

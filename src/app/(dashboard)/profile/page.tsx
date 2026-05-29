@@ -15,6 +15,7 @@ import {
 
 import AppNavBar from "@/components/AppNavBar";
 import ProfileAwardsPanel from "@/components/ProfileAwardsPanel";
+import UserDisplayNameForm from "@/components/UserDisplayNameForm";
 import { APP_CONFIG } from "@/config";
 import { API_BASE } from "@/lib/api";
 import { auth } from "@/lib/auth";
@@ -74,6 +75,34 @@ function formatDate(value?: string) {
   return parsed.toLocaleString();
 }
 
+function buildCommentFallbackName(
+  claims: DecodedProfileClaims | null,
+  user?: { name?: string | null },
+) {
+  const firstName = claims?.given_name?.trim();
+  const lastInitial = claims?.family_name?.trim()?.[0]?.toUpperCase();
+
+  if (firstName) {
+    return lastInitial ? `${firstName}-${lastInitial}.` : firstName;
+  }
+
+  const fullNameParts = user?.name?.trim().split(/\s+/).filter(Boolean) ?? [];
+  if (fullNameParts.length > 0) {
+    const [first, ...rest] = fullNameParts;
+    const derivedInitial = rest[0]?.[0]?.toUpperCase();
+    return derivedInitial ? `${first}-${derivedInitial}.` : first;
+  }
+
+  return claims?.preferred_username || "User";
+}
+
+function buildDisplayNameStorageKey(
+  claims: DecodedProfileClaims | null,
+  user?: { id?: string | null; email?: string | null },
+) {
+  return `profile-display-name:${user?.id || claims?.sub || user?.email || "user"}`;
+}
+
 export default async function ProfilePage() {
   const session = await auth();
   const user = session?.user;
@@ -101,6 +130,7 @@ export default async function ProfilePage() {
     user?.email ||
     claims?.email ||
     "User";
+  const commentFallbackName = buildCommentFallbackName(claims, user);
 
   const avatarSrc = user?.image || claims?.picture || undefined;
   const initials = displayName
@@ -227,13 +257,6 @@ export default async function ProfilePage() {
                 >
                   {displayName}
                 </Typography>
-                <Typography
-                  variant="body1"
-                  color="text.secondary"
-                  sx={{ mt: 0.5 }}
-                >
-                  {user?.email || claims?.email || "No email available"}
-                </Typography>
                 <Stack
                   direction="row"
                   spacing={1}
@@ -250,6 +273,15 @@ export default async function ProfilePage() {
               </Box>
             </Stack>
           </Paper>
+
+          {session?.accessToken ? (
+            <UserDisplayNameForm
+              accessToken={session.accessToken}
+              initialDisplayName=""
+              fallbackName={commentFallbackName}
+              storageKey={buildDisplayNameStorageKey(claims, user)}
+            />
+          ) : null}
 
           <Paper
             elevation={0}
