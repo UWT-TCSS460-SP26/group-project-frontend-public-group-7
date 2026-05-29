@@ -1,0 +1,2661 @@
+openapi: 3.0.3
+info:
+  title: TCSS 460 Team 6 API
+  version: 0.2.0
+  description: |
+    **Team:** Group 6
+    **Deployed URL:** https://tcss460-team-6-api.onrender.com
+
+    A RESTful API for the TCSS 460 group project. Proxies movie and TV show data
+    through team-designed endpoints with custom response schemas — clients never
+    interact with any third-party service directly.
+
+    Sprint 2 adds user-generated content: ratings and reviews are persisted in
+    PostgreSQL via Prisma. Sprint 3 replaces dev-login with real authentication
+    via Auth² — the course's shared OAuth2 + OIDC identity provider.
+
+    **Authentication:** Write endpoints require a Bearer JWT issued by Auth²
+    (`https://tcss-460-iam.onrender.com`), scoped to the `group-6-api` audience.
+    Obtain a token from the TCSS 460 Token Playground by selecting the
+    `group-6-api` audience. Tokens expire after one hour.
+
+    **Role gating:** Protected routes use a 5-tier hierarchy —
+    `User < Moderator < Admin < SuperAdmin < Owner`. Routes requiring elevated
+    access use `requireRoleAtLeast('Admin')` or above.
+servers:
+  - url: https://tcss460-team-6-api.onrender.com
+    description: Deployed production server
+  - url: http://localhost:3000
+    description: Local development server
+tags:
+  - name: General
+    description: General-purpose routes
+  - name: Movies
+    description: Search, browse, and retrieve movie data
+  - name: TV Shows
+    description: Search, browse, and retrieve TV show data
+  - name: Ratings
+    description: User ratings for movies and TV shows
+  - name: Reviews
+    description: User reviews for movies and TV shows
+  - name: Issues
+    description: Public bug report and feedback submissions
+  - name: Users
+    description: Authenticated user profile and activity routes
+  - name: Community
+    description: Public discovery feeds — top-rated and most-reviewed titles
+security: []
+paths:
+  /health:
+    get:
+      tags:
+        - General
+      summary: Health check
+      description: Returns 200 when the server is running. Used by deployment
+        platforms and uptime monitors.
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: OK
+                timestamp: 2026-04-16T10:30:00Z
+  /v1/media/movies:
+    get:
+      tags:
+        - Movies
+      summary: Search movies
+      description: >
+        Search for movies by title. Optionally filter by release year or genre.
+        Returns a paginated list of movie cards — enough data to render a
+        poster, title, and release year. For full details, use GET
+        /media/movies/{id}.
+      operationId: searchMovies
+      parameters:
+        - $ref: "#/components/parameters/movieTitleParam"
+        - $ref: "#/components/parameters/yearParam"
+        - $ref: "#/components/parameters/genreIdParam"
+        - $ref: "#/components/parameters/pageParam"
+      responses:
+        "200":
+          description: A paginated list of matching movies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovieListResponse"
+              example:
+                page: 1
+                totalPages: 4
+                totalResults: 72
+                results:
+                  - id: 550
+                    title: Fight Club
+                    releaseYear: 1999
+                    posterUrl: https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg
+                    overview: An insomniac office worker and a devil-may-care soap maker form an
+                      underground fight club.
+                    genres:
+                      - id: 18
+                        name: Drama
+                      - id: 53
+                        name: Thriller
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/media/movies/by-cast:
+    get:
+      tags:
+        - Movies
+      summary: Search movies by cast member
+      description: >
+        Search for movies that feature a given cast member. Resolves the name to
+        the top-matching person via TMDB person search, then returns that
+        person's movie credits as actor. Results are sorted by TMDB popularity
+        and paginated locally (20 per page). Returns an empty result list when
+        no matching person is found.
+      operationId: searchMoviesByCast
+      parameters:
+        - $ref: "#/components/parameters/castNameParam"
+        - $ref: "#/components/parameters/pageParam"
+      responses:
+        "200":
+          description: A paginated list of movies featuring the cast member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovieListResponse"
+              example:
+                page: 1
+                totalPages: 3
+                totalResults: 47
+                results:
+                  - id: 550
+                    title: Fight Club
+                    releaseYear: 1999
+                    posterUrl: https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg
+                    rating: 8.4
+                    overview: An insomniac office worker and a devil-may-care soap maker form an
+                      underground fight club.
+                    genres:
+                      - id: 18
+                        name: Drama
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/media/movies/popular:
+    get:
+      tags:
+        - Movies
+      summary: Popular movies
+      description: >
+        Returns a paginated list of currently popular movies. Popularity is
+        determined by upstream trending and view data. Results are ordered by
+        popularity score descending.
+      operationId: getPopularMovies
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+      responses:
+        "200":
+          description: A paginated list of popular movies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovieListResponse"
+              example:
+                page: 1
+                totalPages: 20
+                totalResults: 400
+                results:
+                  - id: 1022789
+                    title: Inside Out 2
+                    releaseYear: 2024
+                    posterUrl: https://image.tmdb.org/t/p/w500/vpnVM9B6NMmQpWeZvzLvDESb2QY.jpg
+                    overview: Riley's mind headquarters is suddenly turned upside down as Joy and
+                      the other Emotions try to make room for a new arrival.
+                    genres:
+                      - id: 16
+                        name: Animation
+                      - id: 10751
+                        name: Family
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/media/movies/{id}:
+    get:
+      tags:
+        - Movies
+      summary: Movie details
+      description: >
+        Returns full details for a single movie by its ID. Includes all fields
+        needed to render a rich detail page: poster, backdrop, synopsis,
+        runtime, genres, cast, and similar titles.
+      operationId: getMovieById
+      parameters:
+        - $ref: "#/components/parameters/mediaIdParam"
+      responses:
+        "200":
+          description: Full details for the requested movie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovieDetail"
+              example:
+                id: 550
+                title: Fight Club
+                tagline: Mischief. Mayhem. Soap.
+                overview: An insomniac office worker and a devil-may-care soap maker form an
+                  underground fight club that evolves into something much, much
+                  more.
+                releaseYear: 1999
+                releaseDate: 1999-10-15
+                runtimeMinutes: 139
+                posterUrl: https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg
+                backdropUrl: https://image.tmdb.org/t/p/original/fCayJrkfRaCRCTh8GqN30f8oyQF.jpg
+                status: Released
+                genres:
+                  - id: 18
+                    name: Drama
+                  - id: 53
+                    name: Thriller
+                cast:
+                  - name: Brad Pitt
+                    character: Tyler Durden
+                    profileUrl: https://image.tmdb.org/t/p/w185/cckcYc2v0yh1tc9QjRelptcOBko.jpg
+                  - name: Edward Norton
+                    character: The Narrator
+                    profileUrl: https://image.tmdb.org/t/p/w185/5XBzD5WuTyVQZeS4VI25z2moMeY.jpg
+                similar:
+                  - id: 1422
+                    title: The Departed
+                    releaseYear: 2006
+                    posterUrl: https://image.tmdb.org/t/p/w500/nT97ifVT2J1yMQmeq20Qblg61T.jpg
+                    overview: To take down South Boston's Irish Mob, the police send in one of their
+                      own to infiltrate it.
+                    genres:
+                      - id: 80
+                        name: Crime
+                      - id: 18
+                        name: Drama
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/media/movies/{id}/enriched:
+    get:
+      tags:
+        - Movies
+      summary: Enriched movie detail
+      description: >
+        Returns TMDB movie metadata combined with community aggregate data in a
+        single response. The `tmdb` block contains the same fields as GET
+        /media/movies/{id}. The `community` block contains the average rating,
+        total review count, and up to 3 recent reviews inline — enough for the
+        frontend to decide whether to show a "Load more" button without a second
+        request.
+
+
+        **Optional authentication:** Send a Bearer token to receive a `myRating`
+        field in the `community` block (your own score, or `null` if you have
+        not rated this title yet). The route is fully public without a token.
+      operationId: getEnrichedMovieDetail
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/mediaIdParam"
+      responses:
+        "200":
+          description: Enriched movie detail with community stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrichedMovieDetail"
+              example:
+                tmdb:
+                  id: 27205
+                  title: Inception
+                  tagline: Your mind is the scene of the crime.
+                  overview: A thief who steals corporate secrets through the use of dream-sharing
+                    technology is given the inverse task of planting an idea
+                    into the mind of a C.E.O.
+                  releaseYear: 2010
+                  releaseDate: 2010-07-15
+                  runtimeMinutes: 148
+                  posterUrl: https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg
+                  backdropUrl: https://image.tmdb.org/t/p/original/s3TBrRGB1iav7gFOCNx3H31MoES.jpg
+                  status: Released
+                  genres:
+                    - id: 28
+                      name: Action
+                    - id: 878
+                      name: Science Fiction
+                  cast:
+                    - name: Leonardo DiCaprio
+                      character: Dom Cobb
+                      profileUrl: https://image.tmdb.org/t/p/w185/wo2hJpn04vbtmh0B9utCFdsQhxM.jpg
+                  similar: []
+                community:
+                  averageRating: 4.3
+                  reviewCount: 12
+                  recentReviews:
+                    - id: 1
+                      title: Mind-bending
+                      body: Best movie I have ever seen.
+                      author:
+                        id: auth2|abc123
+                        username: johndoe
+                      createdAt: 2026-04-20T12:00:00Z
+                  myRating: 8
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          description: Failed to reach TMDB upstream
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: Failed to reach TMDB
+  /v1/media/tv:
+    get:
+      tags:
+        - TV Shows
+      summary: Search TV shows
+      description: >
+        Search for TV shows by title. Optionally filter by first air year or
+        genre. Returns a paginated list of show cards — enough data to render a
+        poster, title, and first air date. For full details, use GET
+        /media/tv/{id}.
+      operationId: searchTVShows
+      parameters:
+        - $ref: "#/components/parameters/tvTitleParam"
+        - $ref: "#/components/parameters/yearParam"
+        - $ref: "#/components/parameters/genreIdParam"
+        - $ref: "#/components/parameters/pageParam"
+      responses:
+        "200":
+          description: A paginated list of matching TV shows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TVShowListResponse"
+              example:
+                page: 1
+                totalPages: 2
+                totalResults: 28
+                results:
+                  - id: 1396
+                    title: Breaking Bad
+                    firstAirDate: 2008-01-20
+                    posterUrl: https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg
+                    overview: A chemistry teacher diagnosed with inoperable lung cancer turns to
+                      manufacturing and selling methamphetamine.
+                    genres:
+                      - id: 18
+                        name: Drama
+                      - id: 80
+                        name: Crime
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/media/tv/by-cast:
+    get:
+      tags:
+        - TV Shows
+      summary: Search TV shows by cast member
+      description: >
+        Search for TV shows that feature a given cast member. Resolves the name
+        to the top-matching person via TMDB person search, then returns that
+        person's TV credits as actor. Results are sorted by TMDB popularity and
+        paginated locally (20 per page). Returns an empty result list when no
+        matching person is found.
+      operationId: searchTVShowsByCast
+      parameters:
+        - $ref: "#/components/parameters/castNameParam"
+        - $ref: "#/components/parameters/pageParam"
+      responses:
+        "200":
+          description: A paginated list of TV shows featuring the cast member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TVShowListResponse"
+              example:
+                page: 1
+                totalPages: 2
+                totalResults: 25
+                results:
+                  - id: 1396
+                    title: Breaking Bad
+                    firstAirDate: 2008-01-20
+                    posterUrl: https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg
+                    rating: 9.5
+                    overview: A chemistry teacher diagnosed with inoperable lung cancer turns to
+                      manufacturing methamphetamine.
+                    genres:
+                      - id: 18
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/media/tv/popular:
+    get:
+      tags:
+        - TV Shows
+      summary: Popular TV shows
+      description: >
+        Returns a paginated list of currently popular TV shows. Popularity is
+        determined by upstream trending and view data. Results are ordered by
+        popularity score descending.
+      operationId: getPopularTVShows
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+      responses:
+        "200":
+          description: A paginated list of popular TV shows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TVShowListResponse"
+              example:
+                page: 1
+                totalPages: 20
+                totalResults: 400
+                results:
+                  - id: 94997
+                    title: House of the Dragon
+                    firstAirDate: 2022-08-21
+                    posterUrl: https://image.tmdb.org/t/p/w500/z2yahl2uefxDCl0nogcRBstwruJ.jpg
+                    overview: The story of the House Targaryen set 200 years before the events of
+                      Game of Thrones.
+                    genres:
+                      - id: 10765
+                        name: Sci-Fi & Fantasy
+                      - id: 18
+                        name: Drama
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/media/tv/{id}:
+    get:
+      tags:
+        - TV Shows
+      summary: TV show details
+      description: >
+        Returns full details for a single TV show by its ID. Includes all fields
+        needed to render a rich detail page: poster, backdrop, synopsis,
+        seasons, networks, genres, cast, and similar shows.
+      operationId: getTVShowById
+      parameters:
+        - $ref: "#/components/parameters/mediaIdParam"
+      responses:
+        "200":
+          description: Full details for the requested TV show
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TVShowDetail"
+              example:
+                id: 1396
+                title: Breaking Bad
+                overview: A chemistry teacher diagnosed with inoperable lung cancer turns to
+                  manufacturing and selling methamphetamine in order to secure
+                  his family's future.
+                firstAirDate: 2008-01-20
+                lastAirDate: 2013-09-29
+                status: Ended
+                totalSeasons: 5
+                totalEpisodes: 62
+                averageEpisodeMinutes: 45
+                posterUrl: https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg
+                backdropUrl: https://image.tmdb.org/t/p/original/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg
+                genres:
+                  - id: 18
+                    name: Drama
+                  - id: 80
+                    name: Crime
+                networks:
+                  - name: AMC
+                    logoUrl: https://image.tmdb.org/t/p/w92/alqLicR1ZMHMaZGP3xRQxn9sq7p.png
+                seasons:
+                  - seasonNumber: 1
+                    episodeCount: 7
+                    airDate: 2008-01-20
+                    posterUrl: https://image.tmdb.org/t/p/w500/1BP4xYv9ZG4ZVHkL7ocOziBbSYH.jpg
+                cast:
+                  - name: Bryan Cranston
+                    character: Walter White
+                    profileUrl: https://image.tmdb.org/t/p/w185/7Jahy5LZX2Fo8fGJltMreAI49hC.jpg
+                  - name: Aaron Paul
+                    character: Jesse Pinkman
+                    profileUrl: https://image.tmdb.org/t/p/w185/glEjyreZMVvkPmSe9G2n23BXZXR.jpg
+                similar:
+                  - id: 60574
+                    title: Peaky Blinders
+                    firstAirDate: 2013-09-12
+                    posterUrl: https://image.tmdb.org/t/p/w500/vUUqzWa2LnHIVqkaKVn3nyfVSBx.jpg
+                    overview: A gangster family epic set in 1919 Birmingham, England.
+                    genres:
+                      - id: 80
+                        name: Crime
+                      - id: 18
+                        name: Drama
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/media/tv/{id}/enriched:
+    get:
+      tags:
+        - TV Shows
+      summary: Enriched TV show detail
+      description: >
+        Returns TMDB TV show metadata combined with community aggregate data in
+        a single response. The `tmdb` block contains the same fields as GET
+        /media/tv/{id}. The `community` block contains the average rating, total
+        review count, and up to 3 recent reviews inline — enough for the
+        frontend to decide whether to show a "Load more" button without a second
+        request.
+
+
+        **Optional authentication:** Send a Bearer token to receive a `myRating`
+        field in the `community` block (your own score, or `null` if you have
+        not rated this title yet). The route is fully public without a token.
+      operationId: getEnrichedTVShowDetail
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/mediaIdParam"
+      responses:
+        "200":
+          description: Enriched TV show detail with community stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrichedTVShowDetail"
+              example:
+                tmdb:
+                  id: 1396
+                  title: Breaking Bad
+                  overview: A chemistry teacher diagnosed with inoperable lung cancer turns to
+                    manufacturing and selling methamphetamine.
+                  firstAirDate: 2008-01-20
+                  lastAirDate: 2013-09-29
+                  status: Ended
+                  totalSeasons: 5
+                  totalEpisodes: 62
+                  averageEpisodeMinutes: 45
+                  posterUrl: https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg
+                  backdropUrl: https://image.tmdb.org/t/p/original/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg
+                  genres:
+                    - id: 18
+                      name: Drama
+                    - id: 80
+                      name: Crime
+                  networks:
+                    - name: AMC
+                      logoUrl: https://image.tmdb.org/t/p/w92/alqLicR1ZMHMaZGP3xRQxn9sq7p.png
+                  seasons:
+                    - seasonNumber: 1
+                      episodeCount: 7
+                      airDate: 2008-01-20
+                      posterUrl: https://image.tmdb.org/t/p/w500/1BP4xYv9ZG4ZVHkL7ocOziBbSYH.jpg
+                  cast:
+                    - name: Bryan Cranston
+                      character: Walter White
+                      profileUrl: https://image.tmdb.org/t/p/w185/7Jahy5LZX2Fo8fGJltMreAI49hC.jpg
+                  similar: []
+                community:
+                  averageRating: null
+                  reviewCount: 0
+                  recentReviews: []
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          description: Failed to reach TMDB upstream
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: Failed to reach TMDB
+  /v1/reviews/me:
+    get:
+      tags:
+        - Reviews
+      summary: My reviews
+      description: >
+        Returns paginated reviews written by the authenticated user, sorted most
+        recent first. Identity is always read from the Bearer token — a `userId`
+        query parameter is never accepted.
+      operationId: getMyReviews
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+      responses:
+        "200":
+          description: Reviews written by the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyReviewListResponse"
+              example:
+                totalReviews: 1
+                page: 1
+                totalPages: 1
+                results:
+                  - id: 1
+                    tmdbId: 550
+                    mediaType: movie
+                    title: A haunting masterpiece
+                    body: Fight Club is a film that gets better with every rewatch.
+                    userId: 3
+                    author:
+                      id: auth2|abc123
+                      username: johndoe
+                    createdAt: 2026-04-20T12:00:00Z
+                    updatedAt: 2026-04-20T12:00:00Z
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/ratings/me:
+    get:
+      tags:
+        - Ratings
+      summary: My ratings
+      description: >
+        Returns paginated ratings submitted by the authenticated user, sorted
+        most recent first. Identity is always read from the Bearer token — a
+        `userId` query parameter is never accepted.
+      operationId: getMyRatings
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+      responses:
+        "200":
+          description: Ratings submitted by the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyRatingListResponse"
+              example:
+                totalRatings: 1
+                page: 1
+                totalPages: 1
+                results:
+                  - id: 1
+                    tmdbId: 550
+                    mediaType: movie
+                    score: 9
+                    userId: 3
+                    author:
+                      id: auth2|abc123
+                      username: johndoe
+                    createdAt: 2026-04-20T12:00:00Z
+                    updatedAt: 2026-04-20T12:00:00Z
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/ratings:
+    post:
+      tags:
+        - Ratings
+      summary: Submit or update a rating
+      description: >
+        Creates a rating for the authenticated user. If the user has already
+        rated this content (same tmdbId + mediaType), the existing rating is
+        updated (upsert). The userId is always taken from the JWT — never from
+        the request body.
+      operationId: createOrUpdateRating
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RatingRequest"
+            example:
+              tmdbId: 550
+              mediaType: movie
+              score: 9
+      responses:
+        "200":
+          description: Rating upserted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+              example:
+                id: 1
+                tmdbId: 550
+                mediaType: movie
+                score: 9
+                userId: 3
+                createdAt: 2026-04-20T12:00:00Z
+                updatedAt: 2026-04-20T12:00:00Z
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/ratings/{tmdbId}:
+    get:
+      tags:
+        - Ratings
+      summary: Get ratings for a title
+      description: >
+        Returns all ratings submitted for a given TMDB identifier and media
+        type. No authentication required. Includes aggregate stats (average
+        score, count) alongside the individual records.
+      operationId: getRatingsByTmdbId
+      parameters:
+        - $ref: "#/components/parameters/tmdbIdParam"
+        - $ref: "#/components/parameters/mediaTypeParam"
+        - $ref: "#/components/parameters/pageParam"
+      responses:
+        "200":
+          description: Ratings for the requested title
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingListResponse"
+              example:
+                tmdbId: 550
+                mediaType: movie
+                averageScore: 8.7
+                totalRatings: 3
+                page: 1
+                totalPages: 1
+                results:
+                  - id: 1
+                    score: 9
+                    userId: 3
+                    createdAt: 2026-04-20T12:00:00Z
+                    updatedAt: 2026-04-20T12:00:00Z
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/ratings/{id}:
+    put:
+      tags:
+        - Ratings
+      summary: Update a rating
+      description: >
+        Updates the score on an existing rating. The authenticated user must own
+        the rating. Admins may update any rating.
+      operationId: updateRating
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/recordIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchRatingRequest"
+            example:
+              score: 7
+      responses:
+        "200":
+          description: Rating updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags:
+        - Ratings
+      summary: Delete a rating
+      description: >
+        Deletes a rating by its ID. The authenticated user must own the rating.
+        Admins may delete any rating.
+      operationId: deleteRating
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/recordIdParam"
+      responses:
+        "204":
+          description: Rating deleted successfully
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/reviews:
+    post:
+      tags:
+        - Reviews
+      summary: Submit a review
+      description: >
+        Creates a review for the authenticated user. Multiple reviews per user
+        per title are allowed. The userId is always taken from the JWT.
+      operationId: createReview
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewRequest"
+            example:
+              tmdbId: 550
+              mediaType: movie
+              title: A haunting masterpiece
+              body: Fight Club is a film that gets better with every rewatch. The performances
+                are electric.
+      responses:
+        "201":
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+              example:
+                id: 1
+                tmdbId: 550
+                mediaType: movie
+                title: A haunting masterpiece
+                body: Fight Club is a film that gets better with every rewatch. The performances
+                  are electric.
+                userId: 3
+                createdAt: 2026-04-20T12:00:00Z
+                updatedAt: 2026-04-20T12:00:00Z
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/reviews/{tmdbId}:
+    get:
+      tags:
+        - Reviews
+      summary: Get reviews for a title
+      description: >
+        Returns a paginated list of reviews for a given TMDB identifier and
+        media type. No authentication required. Results are sorted by most
+        recent first.
+      operationId: getReviewsByTmdbId
+      parameters:
+        - $ref: "#/components/parameters/tmdbIdParam"
+        - $ref: "#/components/parameters/mediaTypeParam"
+        - $ref: "#/components/parameters/pageParam"
+      responses:
+        "200":
+          description: Reviews for the requested title
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewListResponse"
+              example:
+                tmdbId: 550
+                mediaType: movie
+                totalReviews: 1
+                page: 1
+                totalPages: 1
+                results:
+                  - id: 1
+                    title: A haunting masterpiece
+                    body: Fight Club is a film that gets better with every rewatch.
+                    userId: 3
+                    createdAt: 2026-04-20T12:00:00Z
+                    updatedAt: 2026-04-20T12:00:00Z
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/reviews/{id}:
+    put:
+      tags:
+        - Reviews
+      summary: Update a review
+      description: >
+        Updates the title and/or body of an existing review. At least one field
+        is required. The authenticated user must own the review. Admins may
+        update any review.
+      operationId: updateReview
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/recordIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchReviewRequest"
+            example:
+              body: On reflection, a genuine classic.
+      responses:
+        "200":
+          description: Review updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags:
+        - Reviews
+      summary: Delete a review
+      description: >
+        Deletes a review by its ID. The authenticated user must own the review.
+        Admins may delete any review regardless of author.
+      operationId: deleteReview
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/recordIdParam"
+      responses:
+        "204":
+          description: Review deleted successfully
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/issues:
+    get:
+      tags:
+        - Issues
+      summary: List bug reports (Admin)
+      description: Returns a paginated list of all issues. Requires Admin role or higher.
+      operationId: listIssues
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          description: Filter by status. Supports comma-separated values (e.g.,
+            "Open,InProgress").
+          schema:
+            type: string
+        - name: sort
+          in: query
+          description: Sort order by creation date.
+          schema:
+            type: string
+            enum:
+              - newest
+              - oldest
+            default: newest
+      responses:
+        "200":
+          description: Paginated list of issues
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Issue"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - Issues
+      summary: Submit a bug report
+      description: >
+        Publicly accessible — no authentication required. Submits a bug report
+        or feedback item. `title` and `description` are required.
+      operationId: createIssue
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueRequest"
+      responses:
+        "201":
+          description: Issue submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Issue"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v1/issues/{id}:
+    get:
+      tags:
+        - Issues
+      summary: Get issue details (Admin)
+      operationId: getIssueById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/recordIdParam"
+      responses:
+        "200":
+          description: Single issue record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Issue"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - Issues
+      summary: Update issue status (Admin)
+      description: Update the triage status of an issue.
+      operationId: updateIssue
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/recordIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: "#/components/schemas/IssueStatus"
+      responses:
+        "200":
+          description: Issue updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Issue"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags:
+        - Issues
+      summary: Delete an issue (Admin)
+      operationId: deleteIssue
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/recordIdParam"
+      responses:
+        "200":
+          description: Issue deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Issue"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/community/top-rated:
+    get:
+      tags:
+        - Community
+      summary: Top-rated titles
+      description: >
+        Public — no authentication required. Returns the titles with the highest
+        community average rating, filtered by a minimum vote count so
+        single-review outliers don't dominate the list.
+
+
+        The aggregation (`GROUP BY tmdbId, mediaType HAVING COUNT(*) >= minVotes
+        ORDER BY AVG(score) DESC`) runs in the database. Each result is then
+        enriched with lightweight TMDB metadata. Queries run live on every
+        request.
+      operationId: getTopRated
+      security: []
+      parameters:
+        - name: limit
+          in: query
+          description: Number of results to return (max 25)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 25
+            default: 10
+        - name: minVotes
+          in: query
+          description: Minimum number of ratings a title must have to appear
+          schema:
+            type: integer
+            minimum: 1
+            default: 3
+        - name: mediaType
+          in: query
+          description: Filter to only movies or only TV shows. Omit to return both.
+          schema:
+            type: string
+            enum:
+              - movie
+              - tv
+      responses:
+        "200":
+          description: Top-rated discovery feed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityFeedResponse"
+              example:
+                feed: top-rated
+                minVotes: 3
+                results:
+                  - rank: 1
+                    tmdbId: 550
+                    mediaType: movie
+                    averageScore: 9.2
+                    ratingCount: 42
+                    tmdb:
+                      id: 550
+                      title: Fight Club
+                      overview: An insomniac office worker forms an underground fight club.
+                      releaseYear: 1999
+                      releaseDate: 1999-10-15
+                      posterUrl: https://image.tmdb.org/t/p/w500/poster.jpg
+                      genres:
+                        - id: 18
+                          name: Drama
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/community/most-reviewed:
+    get:
+      tags:
+        - Community
+      summary: Most-reviewed titles
+      description: >
+        Public — no authentication required. Returns the titles with the most
+        community ratings, regardless of score — shows what the community is
+        actively engaging with right now.
+
+
+        The aggregation (`GROUP BY tmdbId, mediaType ORDER BY COUNT(*) DESC`)
+        runs in the database. Each result is then enriched with lightweight TMDB
+        metadata. Queries run live on every request.
+      operationId: getMostReviewed
+      security: []
+      parameters:
+        - name: limit
+          in: query
+          description: Number of results to return (max 25)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 25
+            default: 10
+        - name: mediaType
+          in: query
+          description: Filter to only movies or only TV shows. Omit to return both.
+          schema:
+            type: string
+            enum:
+              - movie
+              - tv
+      responses:
+        "200":
+          description: Most-reviewed discovery feed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityFeedResponse"
+              example:
+                feed: most-reviewed
+                results:
+                  - rank: 1
+                    tmdbId: 550
+                    mediaType: movie
+                    averageScore: 7.5
+                    ratingCount: 150
+                    tmdb:
+                      id: 550
+                      title: Fight Club
+                      overview: An insomniac office worker forms an underground fight club.
+                      releaseYear: 1999
+                      releaseDate: 1999-10-15
+                      posterUrl: https://image.tmdb.org/t/p/w500/poster.jpg
+                      genres:
+                        - id: 18
+                          name: Drama
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/users/me:
+    get:
+      tags:
+        - Users
+      summary: Get my profile
+      description: Returns the authenticated user's profile fields.
+      operationId: getMe
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+              example:
+                username: johndoe
+                email: johndoe@example.com
+                displayName: CoolAlias
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags:
+        - Users
+      summary: Update my profile
+      description: >
+        Updates the authenticated user's profile. Currently supports setting or
+        clearing `displayName`. Pass a non-empty string to set a display name,
+        or `null` to clear it (reverting author display to `firstName lastName`
+        → `username` fallback order).
+      operationId: patchMe
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchMeRequest"
+            examples:
+              setDisplayName:
+                summary: Set a display name
+                value:
+                  displayName: CoolAlias
+              clearDisplayName:
+                summary: Clear display name (revert to default)
+                value:
+                  displayName: null
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+              example:
+                username: johndoe
+                email: johndoe@example.com
+                displayName: CoolAlias
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Display name already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: Conflict
+                message: That display name is already taken.
+  /v1/users/me/ratings:
+    get:
+      tags:
+        - Users
+      summary: Get my rated movies and shows
+      description: >
+        Returns a paginated list of every title the authenticated user has
+        rated, each enriched with lightweight TMDB metadata (title, poster,
+        release year, genres). The `score` field is the user's own rating from
+        the database — no TMDB community ratings or reviews are included.
+
+
+        The `sub` claim from the Bearer token determines whose ratings are
+        returned. A `userId` query parameter is never trusted even if provided.
+
+
+        Items whose TMDB record has been removed appear with `tmdb: null` — the
+        rating row is still returned so history is never silently dropped.
+      operationId: getMyRatings
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          description: Results per page (max 50)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+        - name: sort
+          in: query
+          description: Sort order — `date` (most recently rated first) or `score` (highest
+            score first)
+          schema:
+            type: string
+            enum:
+              - date
+              - score
+            default: date
+        - name: mediaType
+          in: query
+          description: Filter to only movies or only TV shows. Omit to return both.
+          schema:
+            type: string
+            enum:
+              - movie
+              - tv
+      responses:
+        "200":
+          description: Paginated enriched ratings list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyRatingsResponse"
+              example:
+                page: 1
+                pageSize: 20
+                totalCount: 2
+                totalPages: 1
+                sort: date
+                results:
+                  - id: 1
+                    score: 8
+                    tmdbId: 27205
+                    mediaType: movie
+                    createdAt: 2026-04-01T12:00:00Z
+                    updatedAt: 2026-04-01T12:00:00Z
+                    tmdb:
+                      id: 27205
+                      title: Inception
+                      overview: A thief who steals corporate secrets through dream-sharing.
+                      releaseYear: 2010
+                      releaseDate: 2010-07-16
+                      posterUrl: https://image.tmdb.org/t/p/w500/poster.jpg
+                      genres:
+                        - id: 28
+                          name: Action
+                  - id: 2
+                    score: 9
+                    tmdbId: 1396
+                    mediaType: tv
+                    createdAt: 2026-04-10T12:00:00Z
+                    updatedAt: 2026-04-10T12:00:00Z
+                    tmdb:
+                      id: 1396
+                      title: Breaking Bad
+                      overview: A chemistry teacher turns to manufacturing methamphetamine.
+                      releaseYear: 2008
+                      firstAirDate: 2008-01-20
+                      posterUrl: https://image.tmdb.org/t/p/w500/bbposter.jpg
+                      genres:
+                        - id: 18
+                          name: Drama
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+components:
+  parameters:
+    movieTitleParam:
+      name: title
+      in: query
+      required: true
+      description: Title search string (partial matches supported)
+      schema:
+        type: string
+        minLength: 1
+        example: Interstellar
+    tvTitleParam:
+      name: title
+      in: query
+      required: true
+      description: Title search string (partial matches supported)
+      schema:
+        type: string
+        minLength: 1
+        example: Breaking Bad
+    castNameParam:
+      name: name
+      in: query
+      required: true
+      description: Cast member name (resolves to the top-matching person on TMDB)
+      schema:
+        type: string
+        minLength: 1
+        example: Bryan Cranston
+    yearParam:
+      name: year
+      in: query
+      required: false
+      description: Filter by release year (movies) or first air year (TV shows)
+      schema:
+        type: integer
+        minimum: 1888
+        maximum: 2100
+        example: 2014
+    genreIdParam:
+      name: genreId
+      in: query
+      required: false
+      description: Filter by genre ID. See TMDB genre list for valid IDs (e.g. 18 =
+        Drama, 28 = Action)
+      schema:
+        type: integer
+        example: 878
+    pageParam:
+      name: page
+      in: query
+      required: false
+      description: Page number for paginated results (1-indexed)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+        example: 1
+    mediaIdParam:
+      name: id
+      in: path
+      required: true
+      description: Unique numeric identifier for the movie or TV show
+      schema:
+        type: integer
+        example: 157336
+    tmdbIdParam:
+      name: tmdbId
+      in: path
+      required: true
+      description: TMDB identifier for the movie or TV show
+      schema:
+        type: integer
+        example: 550
+    mediaTypeParam:
+      name: mediaType
+      in: query
+      required: true
+      description: Whether the content is a movie or TV show
+      schema:
+        type: string
+        enum:
+          - movie
+          - tv
+        example: movie
+    recordIdParam:
+      name: id
+      in: path
+      required: true
+      description: Primary key of the rating or review record
+      schema:
+        type: integer
+        example: 1
+  responses:
+    BadRequest:
+      description: Missing or invalid query parameters
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Bad Request
+            message: Query parameter 'title' is required and must not be empty.
+    NotFound:
+      description: No resource found for the given ID
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Not Found
+            message: No movie found with id 99999.
+    Unauthorized:
+      description: Missing or invalid JWT
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Unauthorized
+            message: Authorization token is missing or invalid.
+    Forbidden:
+      description: Authenticated user does not have permission to modify this resource
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Forbidden
+            message: You do not have permission to modify this resource.
+    InternalError:
+      description: Unexpected server error (e.g. upstream service unavailable)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Internal Server Error
+            message: An unexpected error occurred. Please try again later.
+  schemas:
+    Genre:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          description: Genre identifier
+          example: 18
+        name:
+          type: string
+          description: Genre label
+          example: Drama
+    CastMember:
+      type: object
+      required:
+        - name
+        - character
+      properties:
+        name:
+          type: string
+          description: Actor's real name
+          example: Bryan Cranston
+        character:
+          type: string
+          description: Character name in the show or film
+          example: Walter White
+        profileUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Full URL to the actor's profile photo (null if unavailable)
+          example: https://image.tmdb.org/t/p/w185/7Jahy5LZX2Fo8fGJltMreAI49hC.jpg
+    MovieCard:
+      type: object
+      required:
+        - id
+        - title
+        - releaseYear
+        - posterUrl
+        - rating
+        - overview
+        - genres
+      properties:
+        id:
+          type: integer
+          description: Unique movie identifier
+          example: 550
+        title:
+          type: string
+          description: Movie title
+          example: Fight Club
+        releaseYear:
+          type: integer
+          description: Four-digit release year
+          example: 1999
+        posterUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Full URL to the poster image (null if unavailable)
+          example: https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg
+        rating:
+          type: number
+          format: float
+          description: Average user rating out of 10
+          minimum: 0
+          maximum: 10
+          example: 8.4
+        overview:
+          type: string
+          description: Short synopsis
+          example: An insomniac office worker and a devil-may-care soap maker form an
+            underground fight club.
+        genres:
+          type: array
+          description: List of genres associated with this movie
+          items:
+            $ref: "#/components/schemas/Genre"
+    MovieDetail:
+      allOf:
+        - $ref: "#/components/schemas/MovieCard"
+        - type: object
+          required:
+            - tagline
+            - releaseDate
+            - runtimeMinutes
+            - voteCount
+            - backdropUrl
+            - status
+            - cast
+            - similar
+          properties:
+            tagline:
+              type: string
+              nullable: true
+              description: Marketing tagline for the film
+              example: Mischief. Mayhem. Soap.
+            releaseDate:
+              type: string
+              format: date
+              description: Full release date (YYYY-MM-DD)
+              example: 1999-10-15
+            runtimeMinutes:
+              type: integer
+              nullable: true
+              description: Total runtime in minutes
+              example: 139
+            voteCount:
+              type: integer
+              description: Number of user ratings submitted
+              example: 26280
+            backdropUrl:
+              type: string
+              format: uri
+              nullable: true
+              description: Full URL to the backdrop/banner image (null if unavailable)
+              example: https://image.tmdb.org/t/p/original/fCayJrkfRaCRCTh8GqN30f8oyQF.jpg
+            status:
+              type: string
+              description: Release status of the movie
+              enum:
+                - Released
+                - In Production
+                - Post Production
+                - Planned
+                - Cancelled
+              example: Released
+            cast:
+              type: array
+              description: Top-billed cast members (up to 10)
+              items:
+                $ref: "#/components/schemas/CastMember"
+            similar:
+              type: array
+              description: Movies with similar themes or genres (up to 6)
+              items:
+                $ref: "#/components/schemas/MovieCard"
+    TVShowCard:
+      type: object
+      required:
+        - id
+        - title
+        - firstAirDate
+        - posterUrl
+        - rating
+        - overview
+        - genres
+      properties:
+        id:
+          type: integer
+          description: Unique TV show identifier
+          example: 1396
+        title:
+          type: string
+          description: Show title
+          example: Breaking Bad
+        firstAirDate:
+          type: string
+          format: date
+          description: Date the show first aired (YYYY-MM-DD)
+          example: 2008-01-20
+        posterUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Full URL to the poster image (null if unavailable)
+          example: https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg
+        rating:
+          type: number
+          format: float
+          description: Average user rating out of 10
+          minimum: 0
+          maximum: 10
+          example: 9.5
+        overview:
+          type: string
+          description: Short synopsis
+          example: A chemistry teacher turns to manufacturing methamphetamine.
+        genres:
+          type: array
+          description: List of genres associated with this show
+          items:
+            $ref: "#/components/schemas/Genre"
+    SeasonSummary:
+      type: object
+      required:
+        - seasonNumber
+        - episodeCount
+        - airDate
+      properties:
+        seasonNumber:
+          type: integer
+          description: Season number (1-indexed)
+          example: 1
+        episodeCount:
+          type: integer
+          description: Number of episodes in this season
+          example: 7
+        airDate:
+          type: string
+          format: date
+          nullable: true
+          description: Date the season premiered (YYYY-MM-DD)
+          example: 2008-01-20
+        posterUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Season-specific poster (null if unavailable)
+          example: https://image.tmdb.org/t/p/w500/1BP4xYv9ZG4ZVHkL7ocOziBbSYH.jpg
+    NetworkSummary:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Network name
+          example: AMC
+        logoUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Full URL to the network logo (null if unavailable)
+          example: https://image.tmdb.org/t/p/w92/alqLicR1ZMHMaZGP3xRQxn9sq7p.png
+    TVShowDetail:
+      allOf:
+        - $ref: "#/components/schemas/TVShowCard"
+        - type: object
+          required:
+            - lastAirDate
+            - status
+            - totalSeasons
+            - totalEpisodes
+            - averageEpisodeMinutes
+            - voteCount
+            - backdropUrl
+            - networks
+            - seasons
+            - cast
+            - similar
+          properties:
+            lastAirDate:
+              type: string
+              format: date
+              nullable: true
+              description: Date the most recent episode aired (YYYY-MM-DD); null if still
+                airing
+              example: 2013-09-29
+            status:
+              type: string
+              description: Current airing status of the show
+              enum:
+                - Returning Series
+                - Ended
+                - Cancelled
+                - In Production
+                - Planned
+              example: Ended
+            totalSeasons:
+              type: integer
+              description: Total number of seasons
+              example: 5
+            totalEpisodes:
+              type: integer
+              description: Total number of episodes across all seasons
+              example: 62
+            averageEpisodeMinutes:
+              type: integer
+              nullable: true
+              description: Average episode runtime in minutes
+              example: 45
+            voteCount:
+              type: integer
+              description: Number of user ratings submitted
+              example: 13500
+            backdropUrl:
+              type: string
+              format: uri
+              nullable: true
+              description: Full URL to the backdrop/banner image (null if unavailable)
+              example: https://image.tmdb.org/t/p/original/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg
+            networks:
+              type: array
+              description: Networks that aired or stream the show
+              items:
+                $ref: "#/components/schemas/NetworkSummary"
+            seasons:
+              type: array
+              description: Season-level summaries (excludes specials)
+              items:
+                $ref: "#/components/schemas/SeasonSummary"
+            cast:
+              type: array
+              description: Top-billed cast members (up to 10)
+              items:
+                $ref: "#/components/schemas/CastMember"
+            similar:
+              type: array
+              description: TV shows with similar themes or genres (up to 6)
+              items:
+                $ref: "#/components/schemas/TVShowCard"
+    ReviewSummary:
+      type: object
+      required:
+        - id
+        - body
+        - author
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: Review record ID
+          example: 1
+        title:
+          type: string
+          nullable: true
+          description: Optional review title
+          example: Mind-bending
+        body:
+          type: string
+          description: Review body text
+          example: Best movie I have ever seen.
+        author:
+          $ref: "#/components/schemas/Author"
+        createdAt:
+          type: string
+          format: date-time
+          description: When the review was posted
+          example: 2026-04-20T12:00:00Z
+    CommunityStats:
+      type: object
+      required:
+        - averageRating
+        - reviewCount
+        - recentReviews
+      properties:
+        averageRating:
+          type: number
+          format: float
+          nullable: true
+          description: >
+            Mean rating score (1–10) across all community ratings. `null` when
+            no ratings exist — use this to distinguish "no data" from a score of
+            zero.
+          minimum: 1
+          maximum: 10
+          example: 4.3
+        reviewCount:
+          type: integer
+          description: Total number of community reviews submitted for this title
+          example: 12
+        recentReviews:
+          type: array
+          description: Up to 3 most recent reviews; empty array when none exist
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/ReviewSummary"
+        myRating:
+          type: integer
+          nullable: true
+          description: >
+            The authenticated user's own rating (1–10), or `null` if they have
+            not rated this title. Only present when a valid Bearer token is
+            supplied — omitted entirely on unauthenticated requests.
+          minimum: 1
+          maximum: 10
+          example: 8
+    EnrichedMovieDetail:
+      type: object
+      required:
+        - tmdb
+        - community
+      properties:
+        tmdb:
+          description: >
+            TMDB movie metadata. Same shape as MovieDetail but without `rating`
+            and `voteCount` — TMDB scores are intentionally excluded so clients
+            rely on community data only.
+          allOf:
+            - $ref: "#/components/schemas/MovieDetail"
+        community:
+          $ref: "#/components/schemas/CommunityStats"
+    EnrichedTVShowDetail:
+      type: object
+      required:
+        - tmdb
+        - community
+      properties:
+        tmdb:
+          description: >
+            TMDB TV show metadata. Same shape as TVShowDetail but without
+            `rating` and `voteCount` — TMDB scores are intentionally excluded so
+            clients rely on community data only.
+          allOf:
+            - $ref: "#/components/schemas/TVShowDetail"
+        community:
+          $ref: "#/components/schemas/CommunityStats"
+    PaginationMeta:
+      type: object
+      required:
+        - page
+        - totalPages
+        - totalResults
+      properties:
+        page:
+          type: integer
+          description: Current page number (1-indexed)
+          example: 1
+        totalPages:
+          type: integer
+          description: Total number of available pages
+          example: 4
+        totalResults:
+          type: integer
+          description: Total number of results across all pages
+          example: 72
+    MovieListResponse:
+      allOf:
+        - $ref: "#/components/schemas/PaginationMeta"
+        - type: object
+          required:
+            - results
+          properties:
+            results:
+              type: array
+              items:
+                $ref: "#/components/schemas/MovieCard"
+    TVShowListResponse:
+      allOf:
+        - $ref: "#/components/schemas/PaginationMeta"
+        - type: object
+          required:
+            - results
+          properties:
+            results:
+              type: array
+              items:
+                $ref: "#/components/schemas/TVShowCard"
+    PatchMeRequest:
+      type: object
+      required:
+        - displayName
+      properties:
+        displayName:
+          type: string
+          nullable: true
+          minLength: 1
+          description: >
+            Display name shown on reviews and other community content. Pass
+            `null` to clear and revert to the default `firstName lastName` →
+            `username` fallback.
+          example: CoolAlias
+    UserProfile:
+      type: object
+      required:
+        - username
+        - email
+        - displayName
+      properties:
+        username:
+          type: string
+          description: Username derived from the Auth² preferred_username claim.
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: johndoe@example.com
+        displayName:
+          type: string
+          nullable: true
+          description: >
+            User-set display name. `null` when not set — author display then
+            falls back to `firstName lastName` or `username`.
+          example: CoolAlias
+    Author:
+      type: object
+      required:
+        - id
+        - username
+      properties:
+        id:
+          type: string
+          description: >
+            Stable Auth² subject identifier (`sub` claim). Never changes, never
+            reused — safe to store as a long-term reference to this user.
+          example: auth2|abc123
+        username:
+          type: string
+          description: >
+            Display name resolved in priority order from the local user row:
+            explicit `displayName` → `firstName lastName` → `username`.
+            `username` is always present (falls back to the subject ID on first
+            sign-in if the userinfo enrichment fails), so this field is never
+            null.
+          example: johndoe
+    CommunityFeedItem:
+      type: object
+      required:
+        - rank
+        - tmdbId
+        - mediaType
+        - averageScore
+        - ratingCount
+        - tmdb
+      properties:
+        rank:
+          type: integer
+          description: Position in the feed (1-based)
+          example: 1
+        tmdbId:
+          type: integer
+          example: 550
+        mediaType:
+          type: string
+          enum:
+            - movie
+            - tv
+          example: movie
+        averageScore:
+          type: number
+          nullable: true
+          description: Community average score rounded to one decimal place
+          example: 9.2
+        ratingCount:
+          type: integer
+          description: Number of ratings this title has received
+          example: 42
+        tmdb:
+          nullable: true
+          description: TMDB metadata for this title. `null` if the title was removed from
+            TMDB.
+          oneOf:
+            - $ref: "#/components/schemas/TmdbMovieCard"
+            - $ref: "#/components/schemas/TmdbTvCard"
+    CommunityFeedResponse:
+      type: object
+      required:
+        - feed
+        - results
+      properties:
+        feed:
+          type: string
+          enum:
+            - top-rated
+            - most-reviewed
+          example: top-rated
+        minVotes:
+          type: integer
+          description: Only present on the top-rated feed — the minimum vote floor applied
+          example: 3
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommunityFeedItem"
+    TmdbMovieCard:
+      type: object
+      description: Lightweight TMDB metadata for a movie — enough to render a list card
+      properties:
+        id:
+          type: integer
+          example: 27205
+        title:
+          type: string
+          example: Inception
+        overview:
+          type: string
+          example: A thief who steals corporate secrets through dream-sharing.
+        releaseYear:
+          type: integer
+          example: 2010
+        releaseDate:
+          type: string
+          nullable: true
+          example: 2010-07-16
+        posterUrl:
+          type: string
+          nullable: true
+          example: https://image.tmdb.org/t/p/w500/poster.jpg
+        genres:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+    TmdbTvCard:
+      type: object
+      description: Lightweight TMDB metadata for a TV show — enough to render a list card
+      properties:
+        id:
+          type: integer
+          example: 1396
+        title:
+          type: string
+          example: Breaking Bad
+        overview:
+          type: string
+          example: A chemistry teacher turns to manufacturing methamphetamine.
+        releaseYear:
+          type: integer
+          example: 2008
+        firstAirDate:
+          type: string
+          nullable: true
+          example: 2008-01-20
+        posterUrl:
+          type: string
+          nullable: true
+          example: https://image.tmdb.org/t/p/w500/bbposter.jpg
+        genres:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+    EnrichedRating:
+      type: object
+      required:
+        - id
+        - score
+        - tmdbId
+        - mediaType
+        - createdAt
+        - updatedAt
+        - tmdb
+      properties:
+        id:
+          type: integer
+          description: Rating record ID
+          example: 1
+        score:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: The user's own score
+          example: 8
+        tmdbId:
+          type: integer
+          example: 27205
+        mediaType:
+          type: string
+          enum:
+            - movie
+            - tv
+          example: movie
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-04-01T12:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2026-04-01T12:00:00Z
+        tmdb:
+          nullable: true
+          description: >
+            TMDB metadata for this title. `null` when the title has been removed
+            from TMDB — the rating row is still returned so history is
+            preserved.
+          oneOf:
+            - $ref: "#/components/schemas/TmdbMovieCard"
+            - $ref: "#/components/schemas/TmdbTvCard"
+    MyRatingsResponse:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalCount
+        - totalPages
+        - sort
+        - results
+      properties:
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        totalCount:
+          type: integer
+          example: 47
+        totalPages:
+          type: integer
+          example: 3
+        sort:
+          type: string
+          enum:
+            - date
+            - score
+          example: date
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/EnrichedRating"
+    RatingRequest:
+      type: object
+      required:
+        - tmdbId
+        - mediaType
+        - score
+      properties:
+        tmdbId:
+          type: integer
+          description: TMDB identifier for the content being rated
+          example: 550
+        mediaType:
+          type: string
+          enum:
+            - movie
+            - tv
+          description: Whether the content is a movie or TV show
+          example: movie
+        score:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: Rating score from 1 to 10
+          example: 9
+    PatchRatingRequest:
+      type: object
+      required:
+        - score
+      properties:
+        score:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: Updated rating score from 1 to 10
+          example: 7
+    Rating:
+      type: object
+      required:
+        - id
+        - tmdbId
+        - mediaType
+        - score
+        - userId
+        - author
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          example: 1
+        tmdbId:
+          type: integer
+          example: 550
+        mediaType:
+          type: string
+          enum:
+            - movie
+            - tv
+          example: movie
+        score:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 9
+        userId:
+          type: integer
+          description: Internal integer PK of the author
+          example: 3
+        author:
+          $ref: "#/components/schemas/Author"
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-04-20T12:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2026-04-20T12:00:00Z
+    RatingListResponse:
+      type: object
+      required:
+        - tmdbId
+        - mediaType
+        - averageScore
+        - totalRatings
+        - page
+        - totalPages
+        - results
+      properties:
+        tmdbId:
+          type: integer
+          example: 550
+        mediaType:
+          type: string
+          enum:
+            - movie
+            - tv
+          example: movie
+        averageScore:
+          type: number
+          format: float
+          description: Mean score across all ratings for this title
+          example: 8.7
+        totalRatings:
+          type: integer
+          description: Total number of ratings submitted for this title
+          example: 3
+        page:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rating"
+    MyRatingListResponse:
+      type: object
+      required:
+        - totalRatings
+        - page
+        - totalPages
+        - results
+      properties:
+        totalRatings:
+          type: integer
+          description: Total ratings submitted by the authenticated user
+          example: 5
+        page:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rating"
+    ReviewRequest:
+      type: object
+      required:
+        - tmdbId
+        - mediaType
+        - body
+      properties:
+        tmdbId:
+          type: integer
+          description: TMDB identifier for the content being reviewed
+          example: 550
+        mediaType:
+          type: string
+          enum:
+            - movie
+            - tv
+          description: Whether the content is a movie or TV show
+          example: movie
+        title:
+          type: string
+          minLength: 1
+          description: Optional review headline
+          example: A haunting masterpiece
+        body:
+          type: string
+          minLength: 1
+          description: Full review text
+          example: Fight Club is a film that gets better with every rewatch.
+    PatchReviewRequest:
+      type: object
+      description: At least one field (title or body) must be provided.
+      properties:
+        title:
+          type: string
+          minLength: 1
+          description: Updated review headline
+          example: On reflection, a genuine classic
+        body:
+          type: string
+          minLength: 1
+          description: Updated review body
+          example: On reflection, a genuine classic.
+    Review:
+      type: object
+      required:
+        - id
+        - tmdbId
+        - mediaType
+        - body
+        - userId
+        - author
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          example: 1
+        tmdbId:
+          type: integer
+          example: 550
+        mediaType:
+          type: string
+          enum:
+            - movie
+            - tv
+          example: movie
+        title:
+          type: string
+          nullable: true
+          description: Review headline (null if not provided)
+          example: A haunting masterpiece
+        body:
+          type: string
+          example: Fight Club is a film that gets better with every rewatch.
+        userId:
+          type: integer
+          description: Internal integer PK of the author
+          example: 3
+        author:
+          $ref: "#/components/schemas/Author"
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-04-20T12:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2026-04-20T12:00:00Z
+    ReviewListResponse:
+      type: object
+      required:
+        - tmdbId
+        - mediaType
+        - totalReviews
+        - page
+        - totalPages
+        - results
+      properties:
+        tmdbId:
+          type: integer
+          example: 550
+        mediaType:
+          type: string
+          enum:
+            - movie
+            - tv
+          example: movie
+        totalReviews:
+          type: integer
+          description: Total number of reviews submitted for this title
+          example: 1
+        page:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Review"
+    MyReviewListResponse:
+      type: object
+      required:
+        - totalReviews
+        - page
+        - totalPages
+        - results
+      properties:
+        totalReviews:
+          type: integer
+          description: Total reviews written by the authenticated user
+          example: 3
+        page:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Review"
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Short error category
+          example: Not Found
+        message:
+          type: string
+          description: Human-readable description of what went wrong
+          example: No movie found with id 99999.
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: OK
+    IssueStatus:
+      type: string
+      enum:
+        - Open
+        - InProgress
+        - Resolved
+        - Closed
+        - Wontfix
+      description: Current triage status
+      example: Open
+    IssueRequest:
+      type: object
+      required:
+        - title
+        - description
+      properties:
+        title:
+          type: string
+          description: Short summary of the issue
+          example: Search returns no results for exact title
+        description:
+          type: string
+          description: Full description of the problem
+          example: Searching for "Inception" returns an empty list even though the movie
+            exists.
+        reporterContact:
+          type: string
+          nullable: true
+          description: Optional email or name — not linked to any account
+          example: user@example.com
+    Issue:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          description: Issue record ID
+          example: 1
+        title:
+          type: string
+          example: Search returns no results for exact title
+        description:
+          type: string
+          example: Searching for "Inception" returns an empty list.
+        reproSteps:
+          type: string
+          nullable: true
+          description: Optional reproduction steps
+          example: null
+        reporterContact:
+          type: string
+          nullable: true
+          description: Submitter contact info (optional, anonymous)
+          example: user@example.com
+        status:
+          $ref: "#/components/schemas/IssueStatus"
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-05-03T10:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2026-05-03T10:00:00Z
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        RS256-signed JWT issued by Auth² (https://tcss-460-iam.onrender.com),
+        the course's shared OAuth2 + OIDC identity provider. Audience:
+        group-6-api. Obtain a token from the TCSS 460 Token Playground by
+        selecting the group-6-api audience. Tokens expire after one hour — use
+        the Refresh button in the playground to mint a new one without
+        re-signing in.

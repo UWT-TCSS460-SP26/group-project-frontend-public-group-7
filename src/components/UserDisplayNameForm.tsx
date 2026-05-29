@@ -38,7 +38,13 @@ export default function UserDisplayNameForm({
   storageKey,
 }: UserDisplayNameFormProps) {
   const router = useRouter();
-  const [displayName, setDisplayName] = useState(initialDisplayName);
+  const [displayName, setDisplayName] = useState(() => {
+    if (typeof window === "undefined") {
+      return initialDisplayName;
+    }
+
+    return window.localStorage.getItem(storageKey) ?? initialDisplayName;
+  });
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,12 +52,7 @@ export default function UserDisplayNameForm({
 
   useEffect(() => {
     const storedDisplayName = window.localStorage.getItem(storageKey);
-    if (storedDisplayName !== null) {
-      setDisplayName(storedDisplayName);
-      return;
-    }
-
-    setDisplayName(initialDisplayName);
+    setDisplayName(storedDisplayName ?? initialDisplayName);
   }, [initialDisplayName, storageKey]);
 
   async function saveDisplayName(nextValue: string | null) {
