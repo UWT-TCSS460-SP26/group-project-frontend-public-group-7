@@ -11,7 +11,6 @@ import SearchForm from "@/components/SearchForm";
 import MediaCard from "@/components/MediaCard";
 import SearchPagination from "@/components/SearchPagination";
 import { apiGet, ApiError } from "@/lib/api";
-import { auth } from "@/lib/auth";
 import { APP_CONFIG } from "@/config";
 import type { MovieSummary, TVDetail, TVSummary } from "@/types/media";
 
@@ -173,8 +172,6 @@ async function fetchTVCastResults(
 }
 
 export default async function SearchPage({ searchParams }: PageProps) {
-  const session = await auth();
-  const user = session?.user;
   const {
     q,
     page = "1",
@@ -320,7 +317,6 @@ export default async function SearchPage({ searchParams }: PageProps) {
               initialTV={selectedTV}
               initialYear={year}
               initialGenreId={genreId}
-              signInCallbackUrl={!user ? APP_CONFIG.routes.search : undefined}
             />
           </Box>
 

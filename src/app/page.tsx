@@ -79,20 +79,50 @@ export default async function HomePage() {
             disableGutters
             sx={{ justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <MovieIcon sx={{ color: "primary.main", fontSize: 32 }} />
-              <Typography
-                variant="h6"
-                component="div"
+            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.25 }}>
+              <MovieIcon sx={{ color: "primary.main", fontSize: 42, mt: 0.2 }} />
+              <Box
                 sx={{
-                  color: "primary.main",
-                  fontWeight: "bold",
-                  letterSpacing: 0.5,
-                  display: { xs: "none", sm: "block" },
+                  display: { xs: "none", sm: "flex" },
+                  flexDirection: "column",
+                  justifyContent: "flex-start",
+                  ml: -6.6,
+                  mt: 0.1,
                 }}
               >
-                7MDB
-              </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    minHeight: 42,
+                    pl: 6.6,
+                  }}
+                >
+                  <Typography
+                    variant="h4"
+                    component="div"
+                    sx={{
+                      color: "primary.main",
+                      fontWeight: "bold",
+                      letterSpacing: 0.5,
+                      lineHeight: 1,
+                    }}
+                  >
+                    7MDB
+                  </Typography>
+                </Box>
+                <Typography
+                  variant="caption"
+                  component="div"
+                  sx={{
+                    color: "text.secondary",
+                    lineHeight: 1.15,
+                    mt: 0.2,
+                  }}
+                >
+                  Rate and review movies and TV shows.
+                </Typography>
+              </Box>
             </Box>
 
             <Box
