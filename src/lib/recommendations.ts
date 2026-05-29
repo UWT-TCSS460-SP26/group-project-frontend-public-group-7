@@ -68,7 +68,10 @@ export async function getMovieRecommendationsFromRatings(
 
     const seed = seedRatings[seedIndex];
     const seedTitle = result.value.tmdb.title || `Title ${seed.tmdbId}`;
-    const similarTitles = result.value.tmdb.similar.slice(0, MAX_SIMILAR_PER_SEED);
+    const similarTitles = result.value.tmdb.similar.slice(
+      0,
+      MAX_SIMILAR_PER_SEED,
+    );
 
     similarTitles.forEach((similar, similarIndex) => {
       const key = `${seed.mediaType}-${similar.id}`;

@@ -116,7 +116,9 @@ async function buildMovieCastContextMap(
         > => entry.status === "fulfilled",
       )
       .map((entry) => entry.value)
-      .filter((entry): entry is readonly [number, CastContext] => entry !== null),
+      .filter(
+        (entry): entry is readonly [number, CastContext] => entry !== null,
+      ),
   );
 }
 
@@ -158,7 +160,9 @@ async function buildTVCastContextMap(
         > => entry.status === "fulfilled",
       )
       .map((entry) => entry.value)
-      .filter((entry): entry is readonly [number, CastContext] => entry !== null),
+      .filter(
+        (entry): entry is readonly [number, CastContext] => entry !== null,
+      ),
   );
 }
 
@@ -208,7 +212,11 @@ function ResultsGrid({
           key={`${type}-${item.id}`}
           type={type}
           item={item as MovieSummary & TVSummary}
-          hrefOverride={buildMediaHref(type, item.id, castContexts?.get(item.id))}
+          hrefOverride={buildMediaHref(
+            type,
+            item.id,
+            castContexts?.get(item.id),
+          )}
         />
       ))}
     </Box>

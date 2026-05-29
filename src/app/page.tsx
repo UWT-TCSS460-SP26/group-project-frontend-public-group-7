@@ -80,7 +80,9 @@ export default async function HomePage() {
             sx={{ justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}
           >
             <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.25 }}>
-              <MovieIcon sx={{ color: "primary.main", fontSize: 42, mt: 0.2 }} />
+              <MovieIcon
+                sx={{ color: "primary.main", fontSize: 42, mt: 0.2 }}
+              />
               <Box
                 sx={{
                   display: { xs: "none", sm: "flex" },
@@ -254,7 +256,10 @@ export default async function HomePage() {
               variant="h4"
               component="h2"
               fontWeight="bold"
-              sx={{ color: "primary.main", fontSize: { xs: "2.1rem", md: "3rem" } }}
+              sx={{
+                color: "primary.main",
+                fontSize: { xs: "2.1rem", md: "3rem" },
+              }}
             >
               Explore
             </Typography>

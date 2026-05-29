@@ -141,7 +141,8 @@ export default async function MediaDetailPage({
 
     const existingIndex = tmdb.cast.findIndex(
       (member) =>
-        normalizeCastName(member.name) === normalizeCastName(selectedCastMember.name),
+        normalizeCastName(member.name) ===
+        normalizeCastName(selectedCastMember.name),
     );
 
     if (existingIndex >= 0) {
@@ -150,7 +151,8 @@ export default async function MediaDetailPage({
         {
           ...existingMember,
           character: existingMember.character || selectedCastMember.character,
-          profileUrl: existingMember.profileUrl ?? selectedCastMember.profileUrl,
+          profileUrl:
+            existingMember.profileUrl ?? selectedCastMember.profileUrl,
         },
         ...tmdb.cast.filter((_, index) => index !== existingIndex),
       ];

@@ -111,7 +111,9 @@ export default function ProfileAwardsPanel({
                       <Typography variant="subtitle2" fontWeight={700}>
                         {award.name}
                       </Typography>
-                      <Typography variant="body2">{award.description}</Typography>
+                      <Typography variant="body2">
+                        {award.description}
+                      </Typography>
                       <Typography
                         variant="caption"
                         sx={{ display: "block", mt: 0.75, opacity: 0.85 }}
@@ -136,7 +138,10 @@ export default function ProfileAwardsPanel({
                     },
                   }}
                 >
-                  <Stack spacing={0.75} sx={{ alignItems: "center", width: 86 }}>
+                  <Stack
+                    spacing={0.75}
+                    sx={{ alignItems: "center", width: 86 }}
+                  >
                     <BadgeArt award={award} compact />
                     <Typography
                       variant="caption"
@@ -160,7 +165,12 @@ export default function ProfileAwardsPanel({
         </Stack>
       </Paper>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="md"
+      >
         <DialogTitle>Badge Case</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -234,10 +244,10 @@ function BadgeArt({
   const hue = (award.artIndex * 29) % 360;
   const accentHue = (hue + 48) % 360;
   const thirdHue = (hue + 140) % 360;
-  const ring = award.unlocked ? `hsl(${hue} 92% 58%)` : "rgba(255,255,255,0.16)";
-  const bgA = award.unlocked
-    ? `hsl(${hue} 78% 18%)`
-    : "rgba(255,255,255,0.05)";
+  const ring = award.unlocked
+    ? `hsl(${hue} 92% 58%)`
+    : "rgba(255,255,255,0.16)";
+  const bgA = award.unlocked ? `hsl(${hue} 78% 18%)` : "rgba(255,255,255,0.05)";
   const bgB = award.unlocked
     ? `hsl(${accentHue} 76% 28%)`
     : "rgba(255,255,255,0.08)";
@@ -299,14 +309,8 @@ function BadgeArt({
         )}
         {patternType === 1 && (
           <>
-            <path
-              d="M18 76 L50 16 L82 76 Z"
-              fill="rgba(255,255,255,0.14)"
-            />
-            <path
-              d="M33 74 L50 42 L67 74 Z"
-              fill="rgba(255,255,255,0.18)"
-            />
+            <path d="M18 76 L50 16 L82 76 Z" fill="rgba(255,255,255,0.14)" />
+            <path d="M33 74 L50 42 L67 74 Z" fill="rgba(255,255,255,0.18)" />
           </>
         )}
         {patternType === 2 && (

@@ -50,9 +50,7 @@ export async function getAllMyRatings(
     ...firstPage.results,
     ...remainingPages
       .filter(
-        (
-          result,
-        ): result is PromiseFulfilledResult<MyRatingListResponse> =>
+        (result): result is PromiseFulfilledResult<MyRatingListResponse> =>
           result.status === "fulfilled",
       )
       .flatMap((result) => result.value.results),
