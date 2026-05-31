@@ -3,7 +3,19 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Box, CircularProgress, Rating, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Rating,
+  Typography,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 
@@ -13,6 +25,7 @@ import {
   getAwardStorageKey,
   getAwardUserKey,
 } from "@/lib/award-unlocks";
+import { deleteRating } from "@/lib/user-content-api";
 import type { MediaType } from "@/types/media";
 
 interface UserRatingStarsProps {
@@ -29,8 +42,11 @@ export default function UserRatingStars({
   const router = useRouter();
   const { data: session } = useSession();
   const [value, setValue] = useState<number | null>(null);
+  const [ratingId, setRatingId] = useState<number | null>(null);
   const [loadingExisting, setLoadingExisting] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,7 +61,7 @@ export default function UserRatingStars({
       try {
         let page = 1;
         let totalPages = 1;
-        let existingRating: { score: number } | undefined;
+        let existingRating: { id: number; score: number } | undefined;
 
         while (page <= totalPages && !existingRating) {
           const params = new URLSearchParams({
@@ -70,6 +86,7 @@ export default function UserRatingStars({
           const telemetry = (await response.json()) as {
             totalPages: number;
             results: Array<{
+              id: number;
               tmdbId: number;
               mediaType: MediaType;
               score: number;
@@ -85,11 +102,13 @@ export default function UserRatingStars({
         }
 
         if (!cancelled) {
-          setValue(
-            typeof existingRating?.score === "number"
-              ? existingRating.score / 2
-              : null,
-          );
+          if (typeof existingRating?.score === "number") {
+            setValue(existingRating.score / 2);
+            setRatingId(existingRating.id);
+          } else {
+            setValue(null);
+            setRatingId(null);
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -138,6 +157,9 @@ export default function UserRatingStars({
         throw new Error(`Failed to save rating: ${response.status}`);
       }
 
+      const saved = (await response.json()) as { id: number };
+      setRatingId(saved.id);
+
       const userKey = getAwardUserKey(session.user);
       if (userKey) {
         await checkForNewAwards(
@@ -152,6 +174,26 @@ export default function UserRatingStars({
       setError("Couldn't save your rating.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!session?.accessToken || ratingId == null) return;
+
+    setDeleting(true);
+    setError(null);
+
+    try {
+      await deleteRating(session.accessToken, ratingId);
+      setValue(null);
+      setRatingId(null);
+      setDeleteConfirm(false);
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      setError("Couldn't delete your rating.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -195,7 +237,7 @@ export default function UserRatingStars({
             onChange={(_, nextValue) => void handleChange(nextValue)}
             icon={<StarIcon fontSize="inherit" />}
             emptyIcon={<StarBorderIcon fontSize="inherit" />}
-            disabled={submitting}
+            disabled={submitting || deleting}
             sx={{
               "& .MuiRating-iconFilled": {
                 color: "primary.main",
@@ -216,6 +258,17 @@ export default function UserRatingStars({
               {value.toFixed(1).replace(".0", "")}/{max}
             </Typography>
           ) : null}
+          {ratingId != null && (
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => setDeleteConfirm(true)}
+              disabled={deleting}
+              aria-label="Delete rating"
+            >
+              <DeleteIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          )}
         </Box>
       )}
       {error ? (
@@ -223,6 +276,27 @@ export default function UserRatingStars({
           {error}
         </Typography>
       ) : null}
+
+      <Dialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this rating? This action cannot be
+            undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirm(false)}>Cancel</Button>
+          <Button
+            onClick={() => void handleDelete()}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
