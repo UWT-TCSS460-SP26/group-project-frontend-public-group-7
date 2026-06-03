@@ -15,7 +15,7 @@ import { getMovieById, getTVShowById } from "@/lib/fetchAPI";
 import { searchMoviesByCast, searchTVByCast } from "@/lib/media-api";
 import type { MovieSummary, PagedResponse, TVSummary } from "@/types/media";
 
-const TITLES_PER_PAGE = 15;
+const TITLES_PER_PAGE = 12;
 const API_TITLES_PER_PAGE = 20;
 
 interface PageProps {

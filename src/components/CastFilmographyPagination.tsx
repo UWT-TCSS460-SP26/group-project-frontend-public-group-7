@@ -8,8 +8,8 @@ import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
 import { safeRouterPrefetch } from "@/lib/safe-router-prefetch";
 
 const SCROLL_RESTORE_KEY_PREFIX = "cast-filmography-pagination-scroll";
-const TITLES_PER_PAGE = 15;
-const SPARSE_PAGE_THRESHOLD = 10;
+const TITLES_PER_PAGE = 12;
+const SPARSE_PAGE_THRESHOLD = 12;
 
 type ScrollMode = "anchor" | "bottom" | "top";
 

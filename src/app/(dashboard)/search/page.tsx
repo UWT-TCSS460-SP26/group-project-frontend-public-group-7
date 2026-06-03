@@ -33,7 +33,7 @@ type CombinedResult =
   | (MovieSummary & { _type: "movie" })
   | (TVSummary & { _type: "tv" });
 
-const FILTERED_PAGE_SIZE = 20;
+const FILTERED_PAGE_SIZE = 12;
 
 function interleaveResults(
   movies: Array<MovieSummary & { _type: "movie" }>,
