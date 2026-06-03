@@ -32,7 +32,7 @@ import type { MovieSummary, TVSummary } from "@/types/media";
 
 const TITLES_PER_PAGE = 36;
 const SCROLL_EDGE_TOLERANCE_PX = 2;
-const WHEEL_HANDOFF_IDLE_MS = 240;
+const WHEEL_HANDOFF_IDLE_MS = 180;
 
 type ScrollOwner = "page" | "titles";
 type ScrollDirection = "up" | "down";
@@ -142,12 +142,13 @@ export default function ExploreGenreBrowser({
       return undefined;
     }
 
-    const pageScroller = getPageScroller(titleScroller);
+    const foundPageScroller = getPageScroller(titleScroller);
 
-    if (!pageScroller) {
+    if (!foundPageScroller) {
       return undefined;
     }
 
+    const pageScroller: HTMLElement = foundPageScroller;
     pageScrollerRef.current = pageScroller;
 
     function handlePageScroll() {
@@ -158,17 +159,14 @@ export default function ExploreGenreBrowser({
       }
     }
 
-    const target =
+    const target: Window | HTMLElement =
       pageScroller === document.scrollingElement ? window : pageScroller;
 
     target.addEventListener("scroll", handlePageScroll, { passive: true });
 
     return () => {
       target.removeEventListener("scroll", handlePageScroll);
-
-      if (wheelIdleTimerRef.current !== null) {
-        window.clearTimeout(wheelIdleTimerRef.current);
-      }
+      clearWheelIdleTimer();
     };
   }, []);
 
@@ -233,17 +231,34 @@ export default function ExploreGenreBrowser({
     setScrollOwner("page");
   }
 
+  function keepExploreControlIfPageIsBottom() {
+    const titleScroller = titleScrollRef.current;
+    const pageScroller =
+      pageScrollerRef.current ??
+      (titleScroller ? getPageScroller(titleScroller) : null);
+
+    cancelPendingHandoff();
+    canResumeTitlesImmediatelyRef.current = false;
+
+    if (pageScroller && isScrolledToBottom(pageScroller)) {
+      setScrollOwner("titles");
+      return;
+    }
+
+    setScrollOwner("page");
+  }
+
   function handleGenreClick(genre: string) {
     setSelectedGenre(genre);
     setCurrentPage(1);
     titleScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
-    resetScrollHandoffState();
+    keepExploreControlIfPageIsBottom();
   }
 
   function handlePageChange(_: ChangeEvent<unknown>, value: number) {
     setCurrentPage(value);
     titleScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-    resetScrollHandoffState();
+    keepExploreControlIfPageIsBottom();
   }
 
   function handleTitleWheel(event: WheelEvent<HTMLDivElement>) {
@@ -261,14 +276,13 @@ export default function ExploreGenreBrowser({
     }
 
     event.preventDefault();
+    event.stopPropagation();
 
     const direction: ScrollDirection = event.deltaY > 0 ? "down" : "up";
     const owner = scrollOwnerRef.current;
 
     if (!isScrollableY(titleScroller)) {
-      cancelPendingHandoff();
-      canResumeTitlesImmediatelyRef.current = false;
-      setScrollOwner("page");
+      resetScrollHandoffState();
       scrollElementBy(pageScroller, event.deltaY);
       return;
     }
