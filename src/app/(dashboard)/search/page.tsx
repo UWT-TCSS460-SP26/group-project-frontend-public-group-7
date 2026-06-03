@@ -10,9 +10,13 @@ import {
 import SearchForm from "@/components/SearchForm";
 import MediaCard from "@/components/MediaCard";
 import SearchPagination from "@/components/SearchPagination";
-import { apiGet, ApiError } from "@/lib/api";
+import { apiGet, ApiError, PUBLIC_MEDIA_REVALIDATE_SECONDS } from "@/lib/api";
 import { APP_CONFIG } from "@/config";
 import type { MovieSummary, TVDetail, TVSummary } from "@/types/media";
+
+const PUBLIC_MEDIA_FETCH_OPTIONS = {
+  next: { revalidate: PUBLIC_MEDIA_REVALIDATE_SECONDS },
+} as const;
 
 interface PageProps {
   searchParams: Promise<{
@@ -283,7 +287,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
   if (visibleTVResults.length > 0) {
     const seasonDetails = await Promise.allSettled(
       visibleTVResults.map((item) =>
-        apiGet<TVDetail>(`/v1/media/tv/${item.id}`),
+        apiGet<TVDetail>(`/v1/media/tv/${item.id}`, PUBLIC_MEDIA_FETCH_OPTIONS),
       ),
     );
 

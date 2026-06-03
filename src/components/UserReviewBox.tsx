@@ -183,10 +183,14 @@ export default function UserReviewBox({
     if (!session?.accessToken || !existingReview) return;
 
     try {
-      const updated = await updateReview(session.accessToken, existingReview.id, {
-        title: editTitle.trim() ? censorProfanity(editTitle.trim()) : "",
-        body: censorProfanity(editBody),
-      });
+      const updated = await updateReview(
+        session.accessToken,
+        existingReview.id,
+        {
+          title: editTitle.trim() ? censorProfanity(editTitle.trim()) : "",
+          body: censorProfanity(editBody),
+        },
+      );
       setExistingReview(updated);
       setEditOpen(false);
       router.refresh();
@@ -387,10 +391,7 @@ export default function UserReviewBox({
       </Dialog>
 
       {/* Delete Confirmation Dialog — same pattern as UserContentList */}
-      <Dialog
-        open={deleteConfirm}
-        onClose={() => setDeleteConfirm(false)}
-      >
+      <Dialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>

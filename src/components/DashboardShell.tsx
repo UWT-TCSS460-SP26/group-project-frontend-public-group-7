@@ -15,11 +15,11 @@ import SendIcon from "@mui/icons-material/Send";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import PersonIcon from "@mui/icons-material/Person";
 import SearchIcon from "@mui/icons-material/Search";
-import Link from "next/link";
 import { useSession } from "next-auth/react";
 import type { ReactNode } from "react";
 
 import Logo from "@/components/Logo";
+import RouteLoadingLink from "@/components/RouteLoadingLink";
 import SignInButton from "@/components/SignInButton";
 import UserAccountMenu from "@/components/UserAccountMenu";
 import { APP_CONFIG } from "@/config";
@@ -45,7 +45,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
           <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center" }}>
             <Tooltip title="Dashboard">
               <Box
-                component={Link}
+                component={RouteLoadingLink}
                 href={APP_CONFIG.routes.dashboard}
                 sx={{
                   display: "flex",
@@ -76,7 +76,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
           >
             <Tooltip title="Search">
               <IconButton
-                component={Link}
+                component={RouteLoadingLink}
                 href={APP_CONFIG.routes.search}
                 color="inherit"
                 aria-label="Search"
@@ -86,7 +86,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
             </Tooltip>
             <Tooltip title="View Messages">
               <IconButton
-                component={Link}
+                component={RouteLoadingLink}
                 href={APP_CONFIG.routes.messagesView}
                 color="inherit"
                 aria-label="View Messages"
@@ -98,7 +98,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
               <>
                 <Tooltip title="Send Message">
                   <IconButton
-                    component={Link}
+                    component={RouteLoadingLink}
                     href={APP_CONFIG.routes.messagesSend}
                     color="inherit"
                     aria-label="Send Message"
@@ -108,7 +108,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
                 </Tooltip>
                 <Tooltip title="Profile">
                   <IconButton
-                    component={Link}
+                    component={RouteLoadingLink}
                     href={APP_CONFIG.routes.profile}
                     color="inherit"
                     aria-label="Profile"
@@ -118,7 +118,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
                 </Tooltip>
                 <Tooltip title="Token Debug">
                   <IconButton
-                    component={Link}
+                    component={RouteLoadingLink}
                     href={APP_CONFIG.routes.debug}
                     color="inherit"
                     aria-label="Token Debug"

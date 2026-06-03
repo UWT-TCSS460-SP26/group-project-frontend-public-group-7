@@ -98,7 +98,9 @@ export default function AwardUnlockNotifier() {
         },
       }}
     >
-      <DialogTitle sx={{ px: { xs: 2.25, sm: 3 }, pt: { xs: 2.25, sm: 2.75 }, pb: 1.5 }}>
+      <DialogTitle
+        sx={{ px: { xs: 2.25, sm: 3 }, pt: { xs: 2.25, sm: 2.75 }, pb: 1.5 }}
+      >
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={1.75}
@@ -159,7 +161,10 @@ export default function AwardUnlockNotifier() {
             direction="row"
             spacing={1}
             alignItems="center"
-            sx={{ width: { xs: "100%", sm: "auto" }, justifyContent: "space-between" }}
+            sx={{
+              width: { xs: "100%", sm: "auto" },
+              justifyContent: "space-between",
+            }}
           >
             <Chip
               label={`${earnedAwards.length} new`}
@@ -212,10 +217,7 @@ export default function AwardUnlockNotifier() {
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <BadgeArt award={award} />
                 <Box>
-                  <Typography
-                    fontWeight={700}
-                    sx={{ color: "#f6f7f8" }}
-                  >
+                  <Typography fontWeight={700} sx={{ color: "#f6f7f8" }}>
                     {award.name}
                   </Typography>
                   <Typography

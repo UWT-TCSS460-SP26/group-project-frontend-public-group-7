@@ -245,7 +245,6 @@ function getAwardSection(award: ProfileAward) {
   return "total";
 }
 
-
 function getTopUnlockedAwardsBySection(awards: ProfileAward[]) {
   const topBySection = new Map<string, ProfileAward>();
 

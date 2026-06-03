@@ -12,6 +12,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import { useState } from "react";
 import HorizontalScroller from "@/components/HorizontalScroller";
 import MediaPreviewModal from "@/components/MediaPreviewModal";
+import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
 import {
   formatDisplayYear,
   formatDisplayYearFromDate,
@@ -30,6 +31,7 @@ interface Props {
 
 export default function GenreRow({ genre, items, headingSx }: Props) {
   const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
+  const { showLoadingOverlay } = useMediaRouteLoading();
 
   return (
     <Box>
@@ -54,7 +56,10 @@ export default function GenreRow({ genre, items, headingSx }: Props) {
               sx={{ minWidth: 140, maxWidth: 140, flexShrink: 0 }}
             >
               <CardActionArea
-                onClick={() => setSelectedItem(item)}
+                onClick={() => {
+                  showLoadingOverlay();
+                  setSelectedItem(item);
+                }}
                 sx={{
                   height: "100%",
                   display: "flex",

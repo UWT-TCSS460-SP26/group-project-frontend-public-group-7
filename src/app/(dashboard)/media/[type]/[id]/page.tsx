@@ -14,6 +14,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import MovieIcon from "@mui/icons-material/Movie";
 
 import AppNavBar from "@/components/AppNavBar";
+import CastFilmographyLink from "@/components/CastFilmographyLink";
 import ReviewExcerpt from "@/components/ReviewExcerpt";
 import UserReviewBox from "@/components/UserReviewBox";
 import UserRatingStars from "@/components/UserRatingStars";
@@ -27,7 +28,7 @@ import {
   searchMovies,
   searchTV,
 } from "@/lib/media-api";
-import { apiGet, ApiError } from "@/lib/api";
+import { apiGet, ApiError, PUBLIC_MEDIA_REVALIDATE_SECONDS } from "@/lib/api";
 import HorizontalScroller from "@/components/HorizontalScroller";
 import { auth } from "@/lib/auth";
 import {
@@ -79,6 +80,13 @@ function buildSeriesSearchQuery(title: string) {
 function normalizeCastName(value: string) {
   return value.trim().toLocaleLowerCase();
 }
+
+const MORE_LIKE_THIS_LIMIT = 8;
+const MORE_LIKE_THIS_DISCOVERY_PAGES = 3;
+const TITLE_HERO_PLACEHOLDER = "/movie-theater-placeholder.svg";
+const PUBLIC_MEDIA_FETCH_OPTIONS = {
+  next: { revalidate: PUBLIC_MEDIA_REVALIDATE_SECONDS },
+} as const;
 
 export default async function MediaDetailPage({
   params,
@@ -189,7 +197,9 @@ export default async function MediaDetailPage({
   const seriesSearchQuery = buildSeriesSearchQuery(tmdb.title);
 
   const [discoveryPool, seriesSearchResults] = await Promise.all([
-    type === "movie" ? popularMoviesMultiPage(10) : popularTVMultiPage(10),
+    type === "movie"
+      ? popularMoviesMultiPage(MORE_LIKE_THIS_DISCOVERY_PAGES)
+      : popularTVMultiPage(MORE_LIKE_THIS_DISCOVERY_PAGES),
     seriesSearchQuery.length >= 3
       ? type === "movie"
         ? searchMovies(seriesSearchQuery, { page: 1 })
@@ -212,25 +222,35 @@ export default async function MediaDetailPage({
     .filter((candidate) => candidate.id !== tmdb.id)
     .map((candidate) => candidate.id)
     .filter((candidateId) => !baseSimilarIds.has(candidateId))
-    .slice(0, 40);
+    .slice(0, MORE_LIKE_THIS_LIMIT * 2);
 
   const seriesCandidateIds = seriesSearchResults.results
     .filter((candidate) => candidate.id !== tmdb.id)
     .map((candidate) => candidate.id)
     .filter((candidateId) => !baseSimilarIds.has(candidateId))
-    .slice(0, 12);
+    .slice(0, MORE_LIKE_THIS_LIMIT);
 
-  const candidateIds = [
-    ...tmdb.similar.map((similar) => similar.id),
-    ...seriesCandidateIds,
-    ...discoveryCandidateIds,
-  ];
+  const candidateIds = Array.from(
+    new Set([
+      ...tmdb.similar
+        .slice(0, MORE_LIKE_THIS_LIMIT * 2)
+        .map((similar) => similar.id),
+      ...seriesCandidateIds,
+      ...discoveryCandidateIds,
+    ]),
+  ).slice(0, MORE_LIKE_THIS_LIMIT * 4);
 
   const similarDetails = await Promise.allSettled(
     candidateIds.map((candidateId) =>
       type === "movie"
-        ? apiGet<MovieDetail>(`/v1/media/movies/${candidateId}`)
-        : apiGet<TVDetail>(`/v1/media/tv/${candidateId}`),
+        ? apiGet<MovieDetail>(
+            `/v1/media/movies/${candidateId}`,
+            PUBLIC_MEDIA_FETCH_OPTIONS,
+          )
+        : apiGet<TVDetail>(
+            `/v1/media/tv/${candidateId}`,
+            PUBLIC_MEDIA_FETCH_OPTIONS,
+          ),
     ),
   );
 
@@ -315,13 +335,16 @@ export default async function MediaDetailPage({
     ...filteredSimilar,
     ...castOnlySimilar,
     ...genreOnlySimilar,
-  ].filter((similar) => {
-    if (seenMoreLikeThisIds.has(similar.id)) {
-      return false;
-    }
-    seenMoreLikeThisIds.add(similar.id);
-    return true;
-  });
+  ]
+    .filter((similar) => {
+      if (seenMoreLikeThisIds.has(similar.id)) {
+        return false;
+      }
+      seenMoreLikeThisIds.add(similar.id);
+      return true;
+    })
+    .slice(0, MORE_LIKE_THIS_LIMIT);
+  const heroImageUrl = tmdb.backdropUrl || TITLE_HERO_PLACEHOLDER;
 
   return (
     <Box>
@@ -333,46 +356,40 @@ export default async function MediaDetailPage({
           height: { xs: 240, md: 520 },
           overflow: "hidden",
           bgcolor: "background.paper",
-          ...(tmdb.backdropUrl
-            ? {
-                "&::before": {
-                  content: '""',
-                  position: "absolute",
-                  inset: 0,
-                  backgroundImage: `url(${tmdb.backdropUrl})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  filter: "blur(28px)",
-                  transform: "scale(1.08)",
-                  opacity: 0.28,
-                },
-                "&::after": {
-                  content: '""',
-                  position: "absolute",
-                  inset: 0,
-                  background:
-                    "linear-gradient(to right, rgba(18,18,18,0.88) 0%, rgba(18,18,18,0.18) 14%, rgba(18,18,18,0.18) 86%, rgba(18,18,18,0.88) 100%), linear-gradient(to bottom, rgba(18,18,18,0.08) 0%, rgba(18,18,18,0.62) 100%)",
-                },
-              }
-            : {}),
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            backgroundImage: `url(${heroImageUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "blur(28px)",
+            transform: "scale(1.08)",
+            opacity: 0.28,
+          },
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(to right, rgba(18,18,18,0.88) 0%, rgba(18,18,18,0.18) 14%, rgba(18,18,18,0.18) 86%, rgba(18,18,18,0.88) 100%), linear-gradient(to bottom, rgba(18,18,18,0.08) 0%, rgba(18,18,18,0.62) 100%)",
+          },
         }}
       >
-        {tmdb.backdropUrl && (
-          <Box
-            component="img"
-            src={tmdb.backdropUrl}
-            alt=""
-            sx={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              objectPosition: "center",
-              position: "relative",
-              zIndex: 1,
-              opacity: 0.82,
-            }}
-          />
-        )}
+        <Box
+          component="img"
+          src={heroImageUrl}
+          alt=""
+          sx={{
+            width: "100%",
+            height: "100%",
+            objectFit: tmdb.backdropUrl ? "contain" : "cover",
+            objectPosition: "center",
+            position: "relative",
+            zIndex: 1,
+            opacity: 0.82,
+          }}
+        />
       </Box>
 
       <Container
@@ -594,7 +611,7 @@ export default async function MediaDetailPage({
                 {displayCast.map((member: CastMember) => (
                   <Box
                     key={`${member.name}-${member.character}`}
-                    component={Link}
+                    component={CastFilmographyLink}
                     href={`/cast/${encodeURIComponent(member.name)}?image=${encodeURIComponent(member.profileUrl ?? "")}`}
                     sx={{
                       minWidth: 90,
@@ -603,12 +620,28 @@ export default async function MediaDetailPage({
                       flexShrink: 0,
                       textDecoration: "none",
                       color: "inherit",
+                      transition: "transform 140ms ease",
+                      "&:active": {
+                        transform: "scale(0.94)",
+                      },
+                      "&:hover .cast-member-avatar": {
+                        transform: "translateY(-3px)",
+                        boxShadow: "0 0 18px rgba(245,197,24,0.38)",
+                      },
                     }}
                   >
                     <Avatar
+                      className="cast-member-avatar"
                       src={member.profileUrl ?? undefined}
                       alt={member.name}
-                      sx={{ width: 72, height: 72, mx: "auto", mb: 0.75 }}
+                      sx={{
+                        width: 72,
+                        height: 72,
+                        mx: "auto",
+                        mb: 0.75,
+                        transition:
+                          "transform 160ms ease, box-shadow 160ms ease",
+                      }}
                     />
                     <Typography
                       variant="caption"

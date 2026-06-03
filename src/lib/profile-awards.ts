@@ -214,7 +214,8 @@ export function buildProfileAwards(
     description: award.description,
     requirement: award.requirement,
     unlocked: award.unlocked ?? (award.current ?? 0) >= award.target,
-    progressLabel: award.progressLabel ?? progressCount(award.current ?? 0, award.target),
+    progressLabel:
+      award.progressLabel ?? progressCount(award.current ?? 0, award.target),
     badgeCode: award.badgeCode,
     artIndex: award.artIndex,
   }));

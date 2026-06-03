@@ -8,64 +8,80 @@ import {
 } from "@mui/material";
 
 import AppNavBar from "@/components/AppNavBar";
+import CastFilmographyPagination from "@/components/CastFilmographyPagination";
 import MediaCard from "@/components/MediaCard";
 import { APP_CONFIG } from "@/config";
 import { getMovieById, getTVShowById } from "@/lib/fetchAPI";
 import { searchMoviesByCast, searchTVByCast } from "@/lib/media-api";
-import type { MovieSummary, TVSummary } from "@/types/media";
+import type { MovieSummary, PagedResponse, TVSummary } from "@/types/media";
+
+const TITLES_PER_PAGE = 15;
+const API_TITLES_PER_PAGE = 20;
 
 interface PageProps {
   params: Promise<{ name: string }>;
-  searchParams: Promise<{ image?: string }>;
+  searchParams: Promise<{
+    image?: string;
+    moviePage?: string;
+    tvPage?: string;
+  }>;
 }
 
-async function fetchAllMovieCredits(name: string) {
-  const firstPage = await searchMoviesByCast(name, 1);
-  const remaining = await Promise.allSettled(
-    Array.from({ length: Math.max(firstPage.totalPages - 1, 0) }, (_, index) =>
-      searchMoviesByCast(name, index + 2),
+function parsePageNumber(value?: string) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
+async function fetchCastCreditsPage<T extends { id: number }>(
+  fetchPage: (page: number) => Promise<PagedResponse<T>>,
+  requestedPage: number,
+) {
+  const firstPage = await fetchPage(1);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(firstPage.totalResults / TITLES_PER_PAGE),
+  );
+  const currentPage = Math.min(requestedPage, totalPages);
+
+  if (firstPage.totalResults === 0) {
+    return {
+      currentPage,
+      totalPages,
+      totalResults: firstPage.totalResults,
+      items: [] as T[],
+    };
+  }
+
+  const startIndex = (currentPage - 1) * TITLES_PER_PAGE;
+  const endIndex = Math.min(
+    startIndex + TITLES_PER_PAGE,
+    firstPage.totalResults,
+  );
+  const firstApiPage = Math.floor(startIndex / API_TITLES_PER_PAGE) + 1;
+  const lastApiPage = Math.floor((endIndex - 1) / API_TITLES_PER_PAGE) + 1;
+  const apiPages = Array.from(
+    { length: lastApiPage - firstApiPage + 1 },
+    (_, index) => firstApiPage + index,
+  );
+  const apiResponses = await Promise.allSettled(
+    apiPages.map((apiPage) =>
+      apiPage === 1 ? Promise.resolve(firstPage) : fetchPage(apiPage),
     ),
   );
+  const fetchedItems = apiResponses
+    .filter(
+      (response): response is PromiseFulfilledResult<PagedResponse<T>> =>
+        response.status === "fulfilled",
+    )
+    .flatMap((response) => response.value.results);
+  const sliceStart = startIndex - (firstApiPage - 1) * API_TITLES_PER_PAGE;
 
-  return [
-    ...firstPage.results,
-    ...remaining
-      .filter(
-        (result): result is PromiseFulfilledResult<typeof firstPage> =>
-          result.status === "fulfilled",
-      )
-      .flatMap((result) => result.value.results),
-  ];
-}
-
-async function fetchAllTVCredits(name: string) {
-  const firstPage = await searchTVByCast(name, 1);
-  const remaining = await Promise.allSettled(
-    Array.from({ length: Math.max(firstPage.totalPages - 1, 0) }, (_, index) =>
-      searchTVByCast(name, index + 2),
-    ),
-  );
-
-  return [
-    ...firstPage.results,
-    ...remaining
-      .filter(
-        (result): result is PromiseFulfilledResult<typeof firstPage> =>
-          result.status === "fulfilled",
-      )
-      .flatMap((result) => result.value.results),
-  ];
-}
-
-function dedupeById<T extends { id: number }>(items: T[]) {
-  const seen = new Set<number>();
-  return items.filter((item) => {
-    if (seen.has(item.id)) {
-      return false;
-    }
-    seen.add(item.id);
-    return true;
-  });
+  return {
+    totalPages,
+    currentPage,
+    totalResults: firstPage.totalResults,
+    items: fetchedItems.slice(sliceStart, sliceStart + TITLES_PER_PAGE),
+  };
 }
 
 interface CastContext {
@@ -228,22 +244,26 @@ export default async function CastFilmographyPage({
   searchParams,
 }: PageProps) {
   const { name } = await params;
-  const { image } = await searchParams;
+  const { image, moviePage, tvPage } = await searchParams;
   const castName = decodeURIComponent(name);
   const castImage = image ? decodeURIComponent(image) : "";
 
-  const [movies, tvShows] = await Promise.all([
-    fetchAllMovieCredits(castName),
-    fetchAllTVCredits(castName),
+  const [paginatedMovies, paginatedTVShows] = await Promise.all([
+    fetchCastCreditsPage(
+      (page) => searchMoviesByCast(castName, page),
+      parsePageNumber(moviePage),
+    ),
+    fetchCastCreditsPage(
+      (page) => searchTVByCast(castName, page),
+      parsePageNumber(tvPage),
+    ),
   ]);
-
-  const dedupedMovies = dedupeById(movies);
-  const dedupedTVShows = dedupeById(tvShows);
   const [movieCastContexts, tvCastContexts] = await Promise.all([
-    buildMovieCastContextMap(dedupedMovies, castName, castImage),
-    buildTVCastContextMap(dedupedTVShows, castName, castImage),
+    buildMovieCastContextMap(paginatedMovies.items, castName, castImage),
+    buildTVCastContextMap(paginatedTVShows.items, castName, castImage),
   ]);
-  const totalTitles = dedupedMovies.length + dedupedTVShows.length;
+  const totalTitles =
+    paginatedMovies.totalResults + paginatedTVShows.totalResults;
 
   return (
     <>
@@ -303,12 +323,22 @@ export default async function CastFilmographyPage({
             >
               Movies
             </Typography>
-            {dedupedMovies.length > 0 ? (
-              <ResultsGrid
-                items={dedupedMovies}
-                type="movie"
-                castContexts={movieCastContexts}
-              />
+            {paginatedMovies.totalResults > 0 ? (
+              <>
+                <ResultsGrid
+                  items={paginatedMovies.items}
+                  type="movie"
+                  castContexts={movieCastContexts}
+                />
+                {paginatedMovies.totalPages > 1 && (
+                  <CastFilmographyPagination
+                    currentPage={paginatedMovies.currentPage}
+                    pageParam="moviePage"
+                    totalResults={paginatedMovies.totalResults}
+                    totalPages={paginatedMovies.totalPages}
+                  />
+                )}
+              </>
             ) : (
               <Typography color="text.secondary">
                 No movie credits found.
@@ -327,12 +357,22 @@ export default async function CastFilmographyPage({
             >
               TV Shows
             </Typography>
-            {dedupedTVShows.length > 0 ? (
-              <ResultsGrid
-                items={dedupedTVShows}
-                type="tv"
-                castContexts={tvCastContexts}
-              />
+            {paginatedTVShows.totalResults > 0 ? (
+              <>
+                <ResultsGrid
+                  items={paginatedTVShows.items}
+                  type="tv"
+                  castContexts={tvCastContexts}
+                />
+                {paginatedTVShows.totalPages > 1 && (
+                  <CastFilmographyPagination
+                    currentPage={paginatedTVShows.currentPage}
+                    pageParam="tvPage"
+                    totalResults={paginatedTVShows.totalResults}
+                    totalPages={paginatedTVShows.totalPages}
+                  />
+                )}
+              </>
             ) : (
               <Typography color="text.secondary">
                 No TV credits found.

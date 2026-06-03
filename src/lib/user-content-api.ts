@@ -6,6 +6,16 @@ import type {
   RatingRecord,
 } from "@/types/media";
 
+export class UserContentApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "UserContentApiError";
+    this.status = status;
+  }
+}
+
 /**
  * Fetch ratings submitted by the authenticated user.
  */
@@ -21,7 +31,10 @@ export async function getMyRatings(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch ratings: ${response.status}`);
+    throw new UserContentApiError(
+      response.status,
+      `Failed to fetch ratings: ${response.status}`,
+    );
   }
 
   return response.json();
@@ -72,7 +85,10 @@ export async function getMyReviews(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch reviews: ${response.status}`);
+    throw new UserContentApiError(
+      response.status,
+      `Failed to fetch reviews: ${response.status}`,
+    );
   }
 
   return response.json();
@@ -96,7 +112,10 @@ export async function updateReview(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to update review: ${response.status}`);
+    throw new UserContentApiError(
+      response.status,
+      `Failed to update review: ${response.status}`,
+    );
   }
 
   return response.json();
@@ -117,7 +136,10 @@ export async function deleteReview(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to delete review: ${response.status}`);
+    throw new UserContentApiError(
+      response.status,
+      `Failed to delete review: ${response.status}`,
+    );
   }
 }
 
@@ -139,7 +161,10 @@ export async function updateRating(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to update rating: ${response.status}`);
+    throw new UserContentApiError(
+      response.status,
+      `Failed to update rating: ${response.status}`,
+    );
   }
 
   return response.json();
@@ -160,6 +185,9 @@ export async function deleteRating(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to delete rating: ${response.status}`);
+    throw new UserContentApiError(
+      response.status,
+      `Failed to delete rating: ${response.status}`,
+    );
   }
 }

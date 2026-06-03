@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Button, Divider, ListItemText, Menu, MenuItem } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -9,6 +8,8 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import { signOut } from "next-auth/react";
 import { APP_CONFIG } from "@/config";
+import RouteLoadingLink from "@/components/RouteLoadingLink";
+import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
 
 interface UserAccountMenuProps {
   label: string;
@@ -16,6 +17,7 @@ interface UserAccountMenuProps {
 
 export default function UserAccountMenu({ label }: UserAccountMenuProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const { showLoadingOverlay } = useMediaRouteLoading();
   const open = Boolean(anchorEl);
 
   const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -25,6 +27,12 @@ export default function UserAccountMenu({ label }: UserAccountMenuProps) {
   const handleClose = () => {
     setAnchorEl(null);
   };
+
+  function handleSignOut() {
+    handleClose();
+    showLoadingOverlay();
+    void signOut({ callbackUrl: "/" });
+  }
 
   return (
     <>
@@ -63,7 +71,7 @@ export default function UserAccountMenu({ label }: UserAccountMenuProps) {
         }}
       >
         <MenuItem
-          component={Link}
+          component={RouteLoadingLink}
           href={APP_CONFIG.routes.profile}
           onClick={handleClose}
         >
@@ -77,7 +85,7 @@ export default function UserAccountMenu({ label }: UserAccountMenuProps) {
         </MenuItem>
 
         <MenuItem
-          component={Link}
+          component={RouteLoadingLink}
           href={APP_CONFIG.routes.userReviews}
           onClick={handleClose}
         >
@@ -96,7 +104,7 @@ export default function UserAccountMenu({ label }: UserAccountMenuProps) {
         <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
 
         <MenuItem
-          onClick={() => signOut({ callbackUrl: "/" })}
+          onClick={handleSignOut}
           sx={{
             color: "#ff6b6b",
             "&:hover": {

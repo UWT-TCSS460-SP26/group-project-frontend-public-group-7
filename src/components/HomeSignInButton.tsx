@@ -3,6 +3,7 @@
 import { Link as MuiLink } from "@mui/material";
 import LoginIcon from "@mui/icons-material/Login";
 import { signIn } from "next-auth/react";
+import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
 
 interface HomeSignInButtonProps {
   callbackUrl: string;
@@ -14,6 +15,8 @@ interface HomeSignInButtonProps {
 export default function HomeSignInButton({
   callbackUrl,
 }: HomeSignInButtonProps) {
+  const { showLoadingOverlay } = useMediaRouteLoading();
+
   return (
     <MuiLink
       href="#"
@@ -21,6 +24,7 @@ export default function HomeSignInButton({
       color="primary.main"
       onClick={(event) => {
         event.preventDefault();
+        showLoadingOverlay();
         void signIn("tcss460", { callbackUrl });
       }}
       sx={{

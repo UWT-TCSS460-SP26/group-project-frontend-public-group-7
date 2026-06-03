@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Movie theater placeholder</title>
+  <desc id="desc">Fallback movie theater artwork for titles without a backdrop image.</desc>
+  <defs>
+    <linearGradient id="ceiling" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#080808" />
+      <stop offset="55%" stop-color="#171717" />
+      <stop offset="100%" stop-color="#050505" />
+    </linearGradient>
+    <linearGradient id="screenGlow" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#fff4c7" />
+      <stop offset="100%" stop-color="#f5c518" />
+    </linearGradient>
+    <radialGradient id="roomGlow" cx="50%" cy="36%" r="58%">
+      <stop offset="0%" stop-color="#f5c518" stop-opacity="0.2" />
+      <stop offset="58%" stop-color="#f5c518" stop-opacity="0.06" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="seat" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#3c1114" />
+      <stop offset="100%" stop-color="#160608" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#ceiling)" />
+  <rect width="1200" height="675" fill="url(#roomGlow)" />
+  <path d="M0 0h1200v112c-155 38-348 58-600 58S155 150 0 112Z" fill="#020202" opacity="0.9" />
+  <rect x="178" y="106" width="844" height="360" rx="18" fill="#050505" stroke="#2f2f2f" stroke-width="8" />
+  <rect x="214" y="140" width="772" height="292" rx="10" fill="url(#screenGlow)" opacity="0.92" />
+  <path d="M214 140h772v292H214Z" fill="#ffffff" opacity="0.2" />
+  <path d="M214 432h772v-80c-204 52-529 52-772 0Z" fill="#d8a900" opacity="0.24" />
+  <g opacity="0.55" stroke="#f5c518" stroke-width="2">
+    <path d="M600 466 74 675" />
+    <path d="M600 466 252 675" />
+    <path d="M600 466 425 675" />
+    <path d="M600 466 600 675" />
+    <path d="M600 466 775 675" />
+    <path d="M600 466 948 675" />
+    <path d="M600 466 1126 675" />
+  </g>
+  <g fill="url(#seat)">
+    <path d="M0 535c88-25 188-39 300-39s212 14 300 39v140H0Z" />
+    <path d="M600 535c88-25 188-39 300-39s212 14 300 39v140H600Z" />
+    <path d="M112 478c72-20 154-31 246-31s174 11 246 31v104H112Z" opacity="0.82" />
+    <path d="M604 478c72-20 154-31 246-31s174 11 246 31v104H604Z" opacity="0.82" />
+  </g>
+  <g fill="#5a171b" opacity="0.9">
+    <rect x="34" y="538" width="94" height="96" rx="18" />
+    <rect x="148" y="522" width="104" height="112" rx="18" />
+    <rect x="274" y="512" width="112" height="124" rx="18" />
+    <rect x="408" y="522" width="104" height="112" rx="18" />
+    <rect x="534" y="538" width="94" height="96" rx="18" />
+    <rect x="672" y="538" width="94" height="96" rx="18" />
+    <rect x="786" y="522" width="104" height="112" rx="18" />
+    <rect x="912" y="512" width="112" height="124" rx="18" />
+    <rect x="1046" y="522" width="104" height="112" rx="18" />
+  </g>
+  <rect x="0" y="622" width="1200" height="53" fill="#050505" opacity="0.76" />
+</svg>

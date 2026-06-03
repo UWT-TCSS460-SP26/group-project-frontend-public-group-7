@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Box, Typography } from "@mui/material";
 import { MovieCard, TVShowCard } from "@/types/backendObjects";
 import MediaPreviewModal from "@/components/MediaPreviewModal";
+import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
 
 interface MediaCarouselProps {
   items: (MovieCard | TVShowCard)[];
@@ -22,6 +23,7 @@ export default function MediaCarousel({
   const [highlightedId, setHighlightedId] = useState<number | null>(
     items[0]?.id ?? null,
   );
+  const { showLoadingOverlay } = useMediaRouteLoading();
   const isPreviewOpen = selectedId !== null;
 
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -297,6 +299,7 @@ export default function MediaCarousel({
       preventClickRef.current = false;
       return;
     }
+    showLoadingOverlay();
     setSelectedId(id);
   };
 

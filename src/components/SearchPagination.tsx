@@ -2,6 +2,9 @@
 
 import { Pagination } from "@mui/material";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
 
 interface Props {
   q: string;
@@ -23,14 +26,35 @@ export default function SearchPagination({
   genreId,
 }: Props) {
   const router = useRouter();
+  const { showLoadingOverlay } = useMediaRouteLoading();
 
-  function handleChange(_: React.ChangeEvent<unknown>, value: number) {
+  function buildHref(value: number) {
     const params = new URLSearchParams({ q, page: String(value) });
     if (includeMovies) params.set("movies", "1");
     if (includeTV) params.set("tv", "1");
     if (year?.trim()) params.set("year", year.trim());
     if (genreId?.trim()) params.set("genreId", genreId.trim());
-    router.push(`/search?${params}`);
+    return `/search?${params}`;
+  }
+
+  useEffect(() => {
+    function buildPrefetchHref(value: number) {
+      const params = new URLSearchParams({ q, page: String(value) });
+      if (includeMovies) params.set("movies", "1");
+      if (includeTV) params.set("tv", "1");
+      if (year?.trim()) params.set("year", year.trim());
+      if (genreId?.trim()) params.set("genreId", genreId.trim());
+      return `/search?${params}`;
+    }
+
+    [page - 1, page + 1]
+      .filter((nextPage) => nextPage >= 1 && nextPage <= totalPages)
+      .forEach((nextPage) => router.prefetch(buildPrefetchHref(nextPage)));
+  }, [genreId, includeMovies, includeTV, page, q, router, totalPages, year]);
+
+  function handleChange(_: React.ChangeEvent<unknown>, value: number) {
+    showLoadingOverlay();
+    router.push(buildHref(value));
   }
 
   return (

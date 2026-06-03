@@ -4,6 +4,8 @@ import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/700.css";
 
+import AppOverlayFrame from "@/components/AppOverlayFrame";
+import HomeScreen from "@/components/HomeScreen";
 import ThemeRegistry from "@/components/ThemeRegistry";
 import Providers from "@/components/Providers";
 import { APP_CONFIG } from "@/config";
@@ -13,12 +15,16 @@ export const metadata: Metadata = {
   description: APP_CONFIG.app.description,
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
         <Providers>
-          <ThemeRegistry>{children}</ThemeRegistry>
+          <ThemeRegistry>
+            <AppOverlayFrame home={<HomeScreen />}>{children}</AppOverlayFrame>
+          </ThemeRegistry>
         </Providers>
       </body>
     </html>

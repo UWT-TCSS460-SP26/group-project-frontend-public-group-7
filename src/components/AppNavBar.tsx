@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   AppBar,
   Box,
@@ -10,6 +9,7 @@ import {
 import MovieIcon from "@mui/icons-material/Movie";
 
 import HomeSignInButton from "@/components/HomeSignInButton";
+import RouteLoadingLink from "@/components/RouteLoadingLink";
 import UserAccountMenu from "@/components/UserAccountMenu";
 import { APP_CONFIG } from "@/config";
 import { auth } from "@/lib/auth";
@@ -41,7 +41,7 @@ export default async function AppNavBar({
           }}
         >
           <Box
-            component={Link}
+            component={RouteLoadingLink}
             href={APP_CONFIG.routes.home}
             sx={{
               display: "flex",
@@ -76,7 +76,7 @@ export default async function AppNavBar({
             }}
           >
             <Button
-              component={Link}
+              component={RouteLoadingLink}
               href={APP_CONFIG.routes.home}
               color="inherit"
               sx={{ color: "text.primary", minWidth: { xs: 0, sm: 64 } }}
@@ -84,7 +84,7 @@ export default async function AppNavBar({
               Home
             </Button>
             <Button
-              component={Link}
+              component={RouteLoadingLink}
               href={APP_CONFIG.routes.search}
               color="inherit"
               sx={{

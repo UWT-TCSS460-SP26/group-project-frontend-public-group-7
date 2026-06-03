@@ -81,8 +81,8 @@ export async function initializeSeenAwards(
   if (seenIds !== null) return;
 
   const { ratingsCount, reviewsCount } = await fetchAwardCounts(accessToken);
-  const unlockedIds = buildProfileAwards(ratingsCount, reviewsCount).awards
-    .filter((award) => award.unlocked)
+  const unlockedIds = buildProfileAwards(ratingsCount, reviewsCount)
+    .awards.filter((award) => award.unlocked)
     .map((award) => award.id);
 
   writeSeenAwardIds(storageKey, unlockedIds);
