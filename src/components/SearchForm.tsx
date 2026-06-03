@@ -158,9 +158,7 @@ export default function SearchForm({
             flexGrow: 1,
             flexShrink: 1,
             width: { xs: "100%", md: "auto" },
-            minWidth: compact
-              ? { xs: "100%", sm: 0 }
-              : { xs: "100%", sm: 260 },
+            minWidth: compact ? { xs: "100%", sm: 0 } : { xs: "100%", sm: 260 },
             "& .MuiFormHelperText-root": {
               color: "text.disabled",
             },

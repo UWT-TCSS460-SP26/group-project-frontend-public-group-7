@@ -83,10 +83,7 @@ export default function MediaPreviewModal({
               ? result.ratings.averageScore
               : null,
           );
-          safeRouterPrefetch(
-            router,
-            `/media/${mediaType}/${result.detail.id}`,
-          );
+          safeRouterPrefetch(router, `/media/${mediaType}/${result.detail.id}`);
         }
       } catch (err) {
         if (!cancelled) {

@@ -39,6 +39,9 @@ export function loadMediaPreviewData(
   return request;
 }
 
-export function prefetchMediaPreviewData(mediaId: number, mediaType: MediaType) {
+export function prefetchMediaPreviewData(
+  mediaId: number,
+  mediaType: MediaType,
+) {
   void loadMediaPreviewData(mediaId, mediaType).catch(() => undefined);
 }

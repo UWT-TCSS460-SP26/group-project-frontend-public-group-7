@@ -33,7 +33,13 @@ type CombinedResult =
   | (MovieSummary & { _type: "movie" })
   | (TVSummary & { _type: "tv" });
 
+type SearchBatchResult = {
+  combinedResults: CombinedResult[];
+  allRejected: boolean;
+};
+
 const FILTERED_PAGE_SIZE = 12;
+const RELATED_SEARCH_LIMIT = 6;
 
 function interleaveResults(
   movies: Array<MovieSummary & { _type: "movie" }>,
@@ -78,11 +84,54 @@ function matchesMetadataFilters(
     ("releaseYear" in item
       ? String(item.releaseYear ?? "") === year.trim()
       : (item.firstAirDate ?? "").slice(0, 4) === year.trim());
+
   const matchesGenre =
     !genreId.trim() ||
     item.genres.some((genre) => String(genre.id) === genreId.trim());
 
   return matchesYear && matchesGenre;
+}
+
+function getRelatedSearchQueries(query: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  const stopWords = new Set([
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "of",
+    "in",
+    "on",
+    "for",
+    "to",
+    "with",
+  ]);
+
+  const words = normalizedQuery
+    .split(/\s+/)
+    .map((word) => word.replace(/[^\w'-]/g, ""))
+    .filter((word) => word.length > 1 && !stopWords.has(word));
+
+  const relatedQueries = new Set<string>();
+
+  // Try individual important words.
+  words.forEach((word) => relatedQueries.add(word));
+
+  // Try adjacent word pairs.
+  for (let i = 0; i < words.length - 1; i++) {
+    relatedQueries.add(`${words[i]} ${words[i + 1]}`);
+  }
+
+  // Do not retry the exact same full search.
+  relatedQueries.delete(normalizedQuery);
+
+  return Array.from(relatedQueries).slice(0, RELATED_SEARCH_LIMIT);
 }
 
 async function fetchAllPagedResults<T>(
@@ -92,10 +141,12 @@ async function fetchAllPagedResults<T>(
   }>,
 ) {
   const firstPage = await fetchPage(1);
+
   const pages = Array.from(
     { length: Math.max(firstPage.totalPages - 1, 0) },
     (_, index) => index + 2,
   );
+
   const remainingPages = await Promise.allSettled(
     pages.map((page) => fetchPage(page)),
   );
@@ -104,8 +155,12 @@ async function fetchAllPagedResults<T>(
     ...firstPage.results,
     ...remainingPages
       .filter(
-        (result): result is PromiseFulfilledResult<typeof firstPage> =>
-          result.status === "fulfilled",
+        (
+          result,
+        ): result is PromiseFulfilledResult<{
+          totalPages: number;
+          results: T[];
+        }> => result.status === "fulfilled",
       )
       .flatMap((result) => result.value.results),
   ];
@@ -119,6 +174,7 @@ async function fetchMovieTitleResults(
   const allResults = await fetchAllPagedResults((page) =>
     searchMovies(query, { page, year, genreId }),
   );
+
   return allResults.filter(
     (item) =>
       matchesTitleQuery(item, query) &&
@@ -134,6 +190,7 @@ async function fetchTVTitleResults(
   const allResults = await fetchAllPagedResults((page) =>
     searchTV(query, { page, year, genreId }),
   );
+
   return allResults.filter(
     (item) =>
       matchesTitleQuery(item, query) &&
@@ -153,6 +210,7 @@ async function fetchMovieCastResults(
   const allResults = await fetchAllPagedResults((page) =>
     searchMoviesByCast(query, page),
   );
+
   return allResults.filter((item) =>
     matchesMetadataFilters(item, year, genreId),
   );
@@ -170,9 +228,71 @@ async function fetchTVCastResults(
   const allResults = await fetchAllPagedResults((page) =>
     searchTVByCast(query, page),
   );
+
   return allResults.filter((item) =>
     matchesMetadataFilters(item, year, genreId),
   );
+}
+
+async function fetchCombinedResultsForQuery(
+  query: string,
+  includeMovies: boolean,
+  includeTV: boolean,
+  year: string,
+  genreId: string,
+): Promise<SearchBatchResult> {
+  const requestResults = await Promise.allSettled([
+    includeMovies
+      ? fetchMovieTitleResults(query, year, genreId)
+      : Promise.resolve([]),
+    includeTV ? fetchTVTitleResults(query, year, genreId) : Promise.resolve([]),
+    includeMovies
+      ? fetchMovieCastResults(query, year, genreId)
+      : Promise.resolve([]),
+    includeTV ? fetchTVCastResults(query, year, genreId) : Promise.resolve([]),
+  ]);
+
+  const titleMovies =
+    requestResults[0].status === "fulfilled"
+      ? requestResults[0].value.map((item) => ({
+          ...item,
+          _type: "movie" as const,
+        }))
+      : [];
+
+  const titleTV =
+    requestResults[1].status === "fulfilled"
+      ? requestResults[1].value.map((item) => ({
+          ...item,
+          _type: "tv" as const,
+        }))
+      : [];
+
+  const castMovies =
+    requestResults[2].status === "fulfilled"
+      ? requestResults[2].value.map((item) => ({
+          ...item,
+          _type: "movie" as const,
+        }))
+      : [];
+
+  const castTV =
+    requestResults[3].status === "fulfilled"
+      ? requestResults[3].value.map((item) => ({
+          ...item,
+          _type: "tv" as const,
+        }))
+      : [];
+
+  return {
+    combinedResults: dedupeCombinedResults(
+      interleaveResults(
+        [...titleMovies, ...castMovies],
+        [...titleTV, ...castTV],
+      ),
+    ),
+    allRejected: requestResults.every((result) => result.status === "rejected"),
+  };
 }
 
 export default async function SearchPage({ searchParams }: PageProps) {
@@ -184,6 +304,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
     year = "",
     genreId = "",
   } = await searchParams;
+
   const pageNum = Math.max(1, Number(page) || 1);
   const selectedMovies = movies === "1";
   const selectedTV = tv === "1";
@@ -197,66 +318,61 @@ export default async function SearchPage({ searchParams }: PageProps) {
   let totalPages = 0;
   let totalResults = 0;
   let searchError: string | null = null;
+  let usedRelatedSearch = false;
 
   if (hasSearchInput) {
     try {
       const normalizedQuery = q?.trim() ?? "";
-      const requestResults = await Promise.allSettled([
-        includeMovies
-          ? fetchMovieTitleResults(normalizedQuery, year, genreId)
-          : Promise.resolve([]),
-        includeTV
-          ? fetchTVTitleResults(normalizedQuery, year, genreId)
-          : Promise.resolve([]),
-        includeMovies
-          ? fetchMovieCastResults(normalizedQuery, year, genreId)
-          : Promise.resolve([]),
-        includeTV
-          ? fetchTVCastResults(normalizedQuery, year, genreId)
-          : Promise.resolve([]),
-      ]);
 
-      const titleMovies =
-        requestResults[0].status === "fulfilled"
-          ? requestResults[0].value.map((item) => ({
-              ...item,
-              _type: "movie" as const,
-            }))
-          : [];
-      const titleTV =
-        requestResults[1].status === "fulfilled"
-          ? requestResults[1].value.map((item) => ({
-              ...item,
-              _type: "tv" as const,
-            }))
-          : [];
-      const castMovies =
-        requestResults[2].status === "fulfilled"
-          ? requestResults[2].value.map((item) => ({
-              ...item,
-              _type: "movie" as const,
-            }))
-          : [];
-      const castTV =
-        requestResults[3].status === "fulfilled"
-          ? requestResults[3].value.map((item) => ({
-              ...item,
-              _type: "tv" as const,
-            }))
-          : [];
-
-      const combinedResults = dedupeCombinedResults(
-        interleaveResults(
-          [...titleMovies, ...castMovies],
-          [...titleTV, ...castTV],
-        ),
+      let { combinedResults, allRejected } = await fetchCombinedResultsForQuery(
+        normalizedQuery,
+        includeMovies,
+        includeTV,
+        year,
+        genreId,
       );
+
+      // If the exact/full search found nothing, retry with related keyword searches.
+      if (combinedResults.length === 0 && normalizedQuery) {
+        const relatedQueries = getRelatedSearchQueries(normalizedQuery);
+
+        if (relatedQueries.length > 0) {
+          const relatedResults = await Promise.allSettled(
+            relatedQueries.map((relatedQuery) =>
+              fetchCombinedResultsForQuery(
+                relatedQuery,
+                includeMovies,
+                includeTV,
+                year,
+                genreId,
+              ),
+            ),
+          );
+
+          const fulfilledRelatedResults = relatedResults.filter(
+            (result): result is PromiseFulfilledResult<SearchBatchResult> =>
+              result.status === "fulfilled",
+          );
+
+          const fallbackResults = fulfilledRelatedResults.flatMap(
+            (result) => result.value.combinedResults,
+          );
+
+          combinedResults = dedupeCombinedResults(fallbackResults);
+          usedRelatedSearch = combinedResults.length > 0;
+
+          if (usedRelatedSearch) {
+            allRejected = false;
+          }
+        }
+      }
 
       totalResults = combinedResults.length;
       totalPages = Math.max(
         1,
         Math.ceil(combinedResults.length / FILTERED_PAGE_SIZE),
       );
+
       results.push(
         ...combinedResults.slice(
           (pageNum - 1) * FILTERED_PAGE_SIZE,
@@ -264,7 +380,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
         ),
       );
 
-      if (requestResults.every((result) => result.status === "rejected")) {
+      if (allRejected) {
         searchError = "Search failed. Try again.";
       }
 
@@ -282,6 +398,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
   const visibleTVResults = results.filter(
     (item): item is TVSummary & { _type: "tv" } => item._type === "tv",
   );
+
   const tvSeasonCounts = new Map<number, number | null>();
 
   if (visibleTVResults.length > 0) {
@@ -293,6 +410,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
 
     visibleTVResults.forEach((item, index) => {
       const detail = seasonDetails[index];
+
       tvSeasonCounts.set(
         item.id,
         detail.status === "fulfilled" ? detail.value.totalSeasons : null,
@@ -303,9 +421,9 @@ export default async function SearchPage({ searchParams }: PageProps) {
   return (
     <>
       <AppNavBar callbackUrl={APP_CONFIG.routes.search} />
+
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Stack spacing={4}>
-          {/* ── Search bar ── */}
           <Box>
             <Typography
               variant="h4"
@@ -315,6 +433,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
             >
               Search
             </Typography>
+
             <SearchForm
               initialQ={q ?? ""}
               initialMovies={selectedMovies}
@@ -326,7 +445,6 @@ export default async function SearchPage({ searchParams }: PageProps) {
 
           <Divider />
 
-          {/* ── Search results ── */}
           {hasSearchInput && (
             <>
               {searchError ? (
@@ -336,7 +454,11 @@ export default async function SearchPage({ searchParams }: PageProps) {
                   <Typography color="text.secondary">
                     {totalResults.toLocaleString()} result
                     {totalResults !== 1 ? "s" : ""}
-                    {q?.trim() ? ` for “${q.trim()}”` : " for your filters"}
+                    {q?.trim()
+                      ? usedRelatedSearch
+                        ? ` related to “${q.trim()}”`
+                        : ` for “${q.trim()}”`
+                      : " for your filters"}
                   </Typography>
 
                   {results.length === 0 ? (

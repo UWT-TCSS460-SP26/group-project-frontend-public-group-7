@@ -256,8 +256,7 @@ export default function UserDisplayNameForm({
               justifyContent="space-between"
             >
               <Typography variant="body2" color="text.secondary">
-                Current comment name:{" "}
-                {draftDisplayName.trim() || fallbackName}
+                Current comment name: {draftDisplayName.trim() || fallbackName}
               </Typography>
 
               <Stack direction="row" spacing={1.25}>
