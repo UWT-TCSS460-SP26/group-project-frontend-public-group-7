@@ -10,8 +10,13 @@ import {
 } from "react";
 
 import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
+import { safeRouterPrefetch } from "@/lib/safe-router-prefetch";
 
-type RouteLoadingLinkProps = ComponentProps<typeof Link>;
+type RouteLoadingLinkProps = ComponentProps<typeof Link> & {
+  disableLoading?: boolean;
+};
+
+const MISSING_ROUTE_PREFIXES = ["/dashboard", "/messages", "/debug"] as const;
 
 function isPlainLeftClick(event: MouseEvent<HTMLAnchorElement>) {
   return (
@@ -51,9 +56,23 @@ function getInternalUrl(href: RouteLoadingLinkProps["href"]) {
   return targetUrl;
 }
 
+function canPrefetchRoute(pathname: string) {
+  return !MISSING_ROUTE_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 const RouteLoadingLink = forwardRef<HTMLAnchorElement, RouteLoadingLinkProps>(
   function RouteLoadingLink(
-    { href, onClick, onFocus, onMouseEnter, target, ...props },
+    {
+      disableLoading = false,
+      href,
+      onClick,
+      onFocus,
+      onMouseEnter,
+      target,
+      ...props
+    },
     ref,
   ) {
     const router = useRouter();
@@ -62,11 +81,15 @@ const RouteLoadingLink = forwardRef<HTMLAnchorElement, RouteLoadingLinkProps>(
     function prefetchRoute() {
       const targetUrl = getInternalUrl(href);
 
-      if (!targetUrl || target === "_blank") {
+      if (
+        !targetUrl ||
+        target === "_blank" ||
+        !canPrefetchRoute(targetUrl.pathname)
+      ) {
         return;
       }
 
-      router.prefetch(`${targetUrl.pathname}${targetUrl.search}`);
+      safeRouterPrefetch(router, `${targetUrl.pathname}${targetUrl.search}`);
     }
 
     function handleFocus(event: FocusEvent<HTMLAnchorElement>) {
@@ -86,7 +109,7 @@ const RouteLoadingLink = forwardRef<HTMLAnchorElement, RouteLoadingLinkProps>(
         return;
       }
 
-      if (shouldShowLoading(href)) {
+      if (!disableLoading && shouldShowLoading(href)) {
         showLoadingOverlay();
       }
     }

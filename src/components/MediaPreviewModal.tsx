@@ -18,15 +18,15 @@ import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
 
 import { MovieDetail, TVShowDetail } from "@/types/backendObjects";
-import { getMovieById, getTVShowById } from "@/lib/fetchAPI";
 import {
   formatDisplayYear,
   formatDisplayYearFromDate,
 } from "@/lib/format-display-year";
 import { formatRatingOutOfFive } from "@/lib/format-rating-out-of-five";
-import { getTitleRatings } from "@/lib/media-api";
+import { loadMediaPreviewData } from "@/lib/media-preview-data";
 import CastFilmographyLink from "@/components/CastFilmographyLink";
 import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
+import { safeRouterPrefetch } from "@/lib/safe-router-prefetch";
 
 interface MediaPreviewModalProps {
   mediaId: number | null;
@@ -74,17 +74,18 @@ export default function MediaPreviewModal({
       setLoadingDetail(true);
       showLoadingOverlay();
       try {
-        const [result, ratings] = await Promise.all([
-          mediaType === "movie"
-            ? getMovieById(resolvedMediaId)
-            : getTVShowById(resolvedMediaId),
-          getTitleRatings(resolvedMediaId, mediaType),
-        ]);
+        const result = await loadMediaPreviewData(resolvedMediaId, mediaType);
 
         if (!cancelled) {
-          setDetail(result);
+          setDetail(result.detail);
           setCommunityRating(
-            ratings.totalRatings > 0 ? ratings.averageScore : null,
+            result.ratings.totalRatings > 0
+              ? result.ratings.averageScore
+              : null,
+          );
+          safeRouterPrefetch(
+            router,
+            `/media/${mediaType}/${result.detail.id}`,
           );
         }
       } catch (err) {
@@ -106,7 +107,7 @@ export default function MediaPreviewModal({
     return () => {
       cancelled = true;
     };
-  }, [hideLoadingOverlay, mediaId, mediaType, showLoadingOverlay]);
+  }, [hideLoadingOverlay, mediaId, mediaType, router, showLoadingOverlay]);
 
   function handleViewFullDetails() {
     if (!detail || loadingNavigation) {

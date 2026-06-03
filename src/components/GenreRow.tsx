@@ -13,6 +13,7 @@ import { useState } from "react";
 import HorizontalScroller from "@/components/HorizontalScroller";
 import MediaPreviewModal from "@/components/MediaPreviewModal";
 import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
+import { prefetchMediaPreviewData } from "@/lib/media-preview-data";
 import {
   formatDisplayYear,
   formatDisplayYearFromDate,
@@ -56,6 +57,10 @@ export default function GenreRow({ genre, items, headingSx }: Props) {
               sx={{ minWidth: 140, maxWidth: 140, flexShrink: 0 }}
             >
               <CardActionArea
+                onFocus={() => prefetchMediaPreviewData(item.id, item._type)}
+                onMouseEnter={() =>
+                  prefetchMediaPreviewData(item.id, item._type)
+                }
                 onClick={() => {
                   showLoadingOverlay();
                   setSelectedItem(item);

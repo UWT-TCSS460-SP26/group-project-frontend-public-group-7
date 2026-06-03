@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/700.css";
 
 import AppOverlayFrame from "@/components/AppOverlayFrame";
+import HomeInitialLoading from "@/components/HomeInitialLoading";
 import HomeScreen from "@/components/HomeScreen";
 import ThemeRegistry from "@/components/ThemeRegistry";
 import Providers from "@/components/Providers";
@@ -23,7 +25,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <Providers>
           <ThemeRegistry>
-            <AppOverlayFrame home={<HomeScreen />}>{children}</AppOverlayFrame>
+            <AppOverlayFrame
+              home={
+                <Suspense fallback={<HomeInitialLoading />}>
+                  <HomeScreen />
+                </Suspense>
+              }
+            >
+              {children}
+            </AppOverlayFrame>
           </ThemeRegistry>
         </Providers>
       </body>

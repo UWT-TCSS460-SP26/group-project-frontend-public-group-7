@@ -20,6 +20,7 @@ import { APP_CONFIG } from "@/config";
 import { API_BASE } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { buildProfileAwards } from "@/lib/profile-awards";
+import { getCurrentUserProfile } from "@/lib/user-profile";
 
 type DecodedProfileClaims = {
   sub?: string;
@@ -122,7 +123,7 @@ export default async function ProfilePage() {
     }
   }
 
-  const displayName =
+  const accountDisplayName =
     user?.name ||
     claims?.name ||
     [claims?.given_name, claims?.family_name].filter(Boolean).join(" ") ||
@@ -132,6 +133,45 @@ export default async function ProfilePage() {
     "User";
   const commentFallbackName = buildCommentFallbackName(claims, user);
 
+  let ratingsTelemetry: MyRatingsTelemetry | null = null;
+  let reviewsTelemetry: MyReviewsTelemetry | null = null;
+  let savedCommentDisplayName = "";
+
+  if (session?.accessToken) {
+    const authHeaders = {
+      Authorization: `Bearer ${session.accessToken}`,
+    };
+
+    const [profileResponse, ratingsResponse, reviewsResponse] =
+      await Promise.allSettled([
+        getCurrentUserProfile(session.accessToken),
+        fetch(`${API_BASE}/v1/ratings/me?page=1`, {
+          headers: authHeaders,
+          cache: "no-store",
+        }),
+        fetch(`${API_BASE}/v1/reviews/me?page=1`, {
+          headers: authHeaders,
+          cache: "no-store",
+        }),
+      ]);
+
+    if (profileResponse.status === "fulfilled") {
+      savedCommentDisplayName =
+        profileResponse.value?.displayName?.trim() ?? "";
+    }
+
+    if (ratingsResponse.status === "fulfilled" && ratingsResponse.value.ok) {
+      ratingsTelemetry =
+        (await ratingsResponse.value.json()) as MyRatingsTelemetry;
+    }
+
+    if (reviewsResponse.status === "fulfilled" && reviewsResponse.value.ok) {
+      reviewsTelemetry =
+        (await reviewsResponse.value.json()) as MyReviewsTelemetry;
+    }
+  }
+
+  const displayName = savedCommentDisplayName || accountDisplayName;
   const avatarSrc = user?.image || claims?.picture || undefined;
   const initials = displayName
     .split(" ")
@@ -142,6 +182,7 @@ export default async function ProfilePage() {
 
   const accountRows = toDisplayRows([
     ["Display name", displayName],
+    ["Account name", savedCommentDisplayName ? accountDisplayName : undefined],
     ["Email", user?.email || claims?.email],
     ["Given name", claims?.given_name],
     ["Family name", claims?.family_name],
@@ -155,36 +196,6 @@ export default async function ProfilePage() {
         : undefined,
     ],
   ]);
-
-  let ratingsTelemetry: MyRatingsTelemetry | null = null;
-  let reviewsTelemetry: MyReviewsTelemetry | null = null;
-
-  if (session?.accessToken) {
-    const authHeaders = {
-      Authorization: `Bearer ${session.accessToken}`,
-    };
-
-    const [ratingsResponse, reviewsResponse] = await Promise.allSettled([
-      fetch(`${API_BASE}/v1/ratings/me?page=1`, {
-        headers: authHeaders,
-        cache: "no-store",
-      }),
-      fetch(`${API_BASE}/v1/reviews/me?page=1`, {
-        headers: authHeaders,
-        cache: "no-store",
-      }),
-    ]);
-
-    if (ratingsResponse.status === "fulfilled" && ratingsResponse.value.ok) {
-      ratingsTelemetry =
-        (await ratingsResponse.value.json()) as MyRatingsTelemetry;
-    }
-
-    if (reviewsResponse.status === "fulfilled" && reviewsResponse.value.ok) {
-      reviewsTelemetry =
-        (await reviewsResponse.value.json()) as MyReviewsTelemetry;
-    }
-  }
 
   const latestReviewDate = formatDate(
     reviewsTelemetry?.results?.[0]?.updatedAt ||
@@ -277,7 +288,7 @@ export default async function ProfilePage() {
           {session?.accessToken ? (
             <UserDisplayNameForm
               accessToken={session.accessToken}
-              initialDisplayName=""
+              initialDisplayName={savedCommentDisplayName}
               fallbackName={commentFallbackName}
               storageKey={buildDisplayNameStorageKey(claims, user)}
             />

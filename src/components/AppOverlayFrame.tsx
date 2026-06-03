@@ -50,9 +50,8 @@ export default function AppOverlayFrame({
             inset: 0,
             zIndex: 20,
             overflowY: "auto",
-            bgcolor: "rgba(18, 18, 18, 0.94)",
+            bgcolor: "background.default",
             boxShadow: "0 0 48px rgba(0,0,0,0.48)",
-            backdropFilter: "blur(8px)",
           }}
         >
           {children}

@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef } from "react";
 
 import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
+import { safeRouterPrefetch } from "@/lib/safe-router-prefetch";
 
 const SCROLL_RESTORE_KEY_PREFIX = "cast-filmography-pagination-scroll";
 const TITLES_PER_PAGE = 15;
@@ -111,7 +112,7 @@ export default function CastFilmographyPagination({
 
     [currentPage - 1, currentPage + 1]
       .filter((page) => page >= 1 && page <= totalPages)
-      .forEach((page) => router.prefetch(buildPrefetchHref(page)));
+      .forEach((page) => safeRouterPrefetch(router, buildPrefetchHref(page)));
   }, [currentPage, pageParam, pathname, router, searchParams, totalPages]);
 
   useLayoutEffect(() => {

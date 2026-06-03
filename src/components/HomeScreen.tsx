@@ -20,6 +20,7 @@ import { auth } from "@/lib/auth";
 import { APP_CONFIG } from "@/config";
 import { MovieCard, TVShowCard } from "@/types/backendObjects";
 import { getAllMyRatings, UserContentApiError } from "@/lib/user-content-api";
+import { getCurrentUserDisplayName } from "@/lib/user-profile";
 
 export default async function HomeScreen() {
   const session = await auth();
@@ -32,6 +33,7 @@ export default async function HomeScreen() {
     ReturnType<typeof getMovieRecommendationsFromRatings>
   > = [];
   let totalRatingsCount = 0;
+  let userMenuLabel = user?.name || user?.email || "Signed in";
   let browseError = false;
   try {
     const homeMedia = await getCachedHomePageMedia();
@@ -44,13 +46,23 @@ export default async function HomeScreen() {
   }
 
   if (session?.accessToken) {
-    try {
-      const ratings = await getAllMyRatings(session.accessToken);
+    const [displayNameResult, ratingsResult] = await Promise.allSettled([
+      getCurrentUserDisplayName(session.accessToken),
+      getAllMyRatings(session.accessToken),
+    ]);
+
+    if (displayNameResult.status === "fulfilled" && displayNameResult.value) {
+      userMenuLabel = displayNameResult.value;
+    }
+
+    if (ratingsResult.status === "fulfilled") {
+      const ratings = ratingsResult.value;
       totalRatingsCount = ratings.length;
       if (totalRatingsCount >= 10) {
         recommendedMovies = await getMovieRecommendationsFromRatings(ratings);
       }
-    } catch (error) {
+    } else {
+      const error = ratingsResult.reason;
       if (error instanceof UserContentApiError && error.status === 401) {
         totalRatingsCount = 0;
         recommendedMovies = [];
@@ -136,7 +148,7 @@ export default async function HomeScreen() {
             <Box
               sx={{
                 flex: 1,
-                minWidth: { xs: "100%", md: 612 },
+                minWidth: { xs: "100%", md: 0 },
                 maxWidth: { xs: "100%", md: "none" },
                 order: { xs: 3, md: 2 },
               }}
@@ -168,9 +180,7 @@ export default async function HomeScreen() {
               )}
 
               {user ? (
-                <UserAccountMenu
-                  label={user.name || user.email || "Signed in"}
-                />
+                <UserAccountMenu label={userMenuLabel} />
               ) : (
                 <HomeSignInButton callbackUrl={APP_CONFIG.routes.home} />
               )}

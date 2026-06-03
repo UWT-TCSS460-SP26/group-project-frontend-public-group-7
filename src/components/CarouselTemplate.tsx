@@ -6,6 +6,7 @@ import { Box, Typography } from "@mui/material";
 import { MovieCard, TVShowCard } from "@/types/backendObjects";
 import MediaPreviewModal from "@/components/MediaPreviewModal";
 import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
+import { prefetchMediaPreviewData } from "@/lib/media-preview-data";
 
 interface MediaCarouselProps {
   items: (MovieCard | TVShowCard)[];
@@ -421,6 +422,7 @@ export default function MediaCarousel({
               key={item.id}
               onClick={() => handleItemClick(item.id)}
               onMouseEnter={() => {
+                prefetchMediaPreviewData(item.id, mediaType);
                 if (
                   !isWheelScrollingRef.current &&
                   !wasEdgeScrollingRef.current

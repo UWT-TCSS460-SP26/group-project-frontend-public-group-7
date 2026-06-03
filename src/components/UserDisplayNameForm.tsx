@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Alert,
   Box,
@@ -31,28 +30,46 @@ interface UserProfileResponse {
   displayName: string | null;
 }
 
+async function readSavedDisplayName(
+  response: Response,
+  fallbackDisplayName: string,
+) {
+  const text = await response.text();
+
+  if (!text.trim()) {
+    return fallbackDisplayName;
+  }
+
+  try {
+    const savedProfile = JSON.parse(text) as Partial<UserProfileResponse>;
+    return savedProfile.displayName?.trim() ?? fallbackDisplayName;
+  } catch {
+    return fallbackDisplayName;
+  }
+}
+
 export default function UserDisplayNameForm({
   accessToken,
   initialDisplayName,
   fallbackName,
   storageKey,
 }: UserDisplayNameFormProps) {
-  const router = useRouter();
-  const [displayName, setDisplayName] = useState(() => {
-    if (typeof window === "undefined") {
-      return initialDisplayName;
-    }
-
-    return window.localStorage.getItem(storageKey) ?? initialDisplayName;
-  });
+  const [savedDisplayName, setSavedDisplayName] = useState(initialDisplayName);
+  const [draftDisplayName, setDraftDisplayName] = useState(initialDisplayName);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedDisplayName = window.localStorage.getItem(storageKey);
-    setDisplayName(storedDisplayName ?? initialDisplayName);
+    setSavedDisplayName(initialDisplayName);
+    setDraftDisplayName(initialDisplayName);
+
+    if (initialDisplayName) {
+      window.localStorage.setItem(storageKey, initialDisplayName);
+    } else {
+      window.localStorage.removeItem(storageKey);
+    }
   }, [initialDisplayName, storageKey]);
 
   async function saveDisplayName(nextValue: string | null) {
@@ -80,10 +97,13 @@ export default function UserDisplayNameForm({
         throw new Error(message);
       }
 
-      const savedProfile = (await response.json()) as UserProfileResponse;
-      const savedDisplayName = savedProfile.displayName?.trim() ?? "";
+      const savedDisplayName = await readSavedDisplayName(
+        response,
+        nextValue?.trim() ?? "",
+      );
 
-      setDisplayName(savedDisplayName);
+      setSavedDisplayName(savedDisplayName);
+      setDraftDisplayName(savedDisplayName);
       if (savedDisplayName) {
         window.localStorage.setItem(storageKey, savedDisplayName);
       } else {
@@ -95,7 +115,6 @@ export default function UserDisplayNameForm({
           : "Display name cleared. Comments will fall back to your default name.",
       );
       setOpen(false);
-      router.refresh();
     } catch (err) {
       console.error(err);
       setError(
@@ -109,7 +128,7 @@ export default function UserDisplayNameForm({
   }
 
   async function handleSave() {
-    const trimmed = displayName.trim();
+    const trimmed = draftDisplayName.trim();
     if (!trimmed) {
       setError("Enter a display name or use Clear to reset it.");
       setSuccess(null);
@@ -169,12 +188,12 @@ export default function UserDisplayNameForm({
               </Typography>
               <Stack direction="row" spacing={1} alignItems="center">
                 <Typography variant="body1" fontWeight={600}>
-                  {displayName.trim() || fallbackName}
+                  {savedDisplayName.trim() || fallbackName}
                 </Typography>
                 <IconButton
                   aria-label="Edit display name"
                   onClick={() => {
-                    setDisplayName(displayName.trim() || "");
+                    setDraftDisplayName(savedDisplayName.trim() || "");
                     setError(null);
                     setOpen(true);
                   }}
@@ -203,9 +222,7 @@ export default function UserDisplayNameForm({
           if (submitting) return;
           setOpen(false);
           setError(null);
-          setDisplayName(
-            window.localStorage.getItem(storageKey) ?? initialDisplayName,
-          );
+          setDraftDisplayName(savedDisplayName);
         }}
         fullWidth
         maxWidth="sm"
@@ -223,8 +240,8 @@ export default function UserDisplayNameForm({
 
             <TextField
               label="Display name"
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
+              value={draftDisplayName}
+              onChange={(event) => setDraftDisplayName(event.target.value)}
               disabled={submitting}
               fullWidth
               inputProps={{ maxLength: 50 }}
@@ -239,7 +256,8 @@ export default function UserDisplayNameForm({
               justifyContent="space-between"
             >
               <Typography variant="body2" color="text.secondary">
-                Current comment name: {displayName.trim() || fallbackName}
+                Current comment name:{" "}
+                {draftDisplayName.trim() || fallbackName}
               </Typography>
 
               <Stack direction="row" spacing={1.25}>

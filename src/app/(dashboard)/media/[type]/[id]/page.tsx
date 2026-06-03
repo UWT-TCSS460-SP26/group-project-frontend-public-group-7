@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   Avatar,
@@ -15,6 +14,7 @@ import MovieIcon from "@mui/icons-material/Movie";
 
 import AppNavBar from "@/components/AppNavBar";
 import CastFilmographyLink from "@/components/CastFilmographyLink";
+import RouteLoadingLink from "@/components/RouteLoadingLink";
 import ReviewExcerpt from "@/components/ReviewExcerpt";
 import UserReviewBox from "@/components/UserReviewBox";
 import UserRatingStars from "@/components/UserRatingStars";
@@ -686,7 +686,7 @@ export default async function MediaDetailPage({
                   {moreLikeThisTitles.map((s) => (
                     <Box
                       key={s.id}
-                      component={Link}
+                      component={RouteLoadingLink}
                       href={`/media/${type}/${s.id}`}
                       sx={{
                         minWidth: { xs: 104, sm: 120 },

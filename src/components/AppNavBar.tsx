@@ -13,6 +13,7 @@ import RouteLoadingLink from "@/components/RouteLoadingLink";
 import UserAccountMenu from "@/components/UserAccountMenu";
 import { APP_CONFIG } from "@/config";
 import { auth } from "@/lib/auth";
+import { getCurrentUserDisplayName } from "@/lib/user-profile";
 
 interface AppNavBarProps {
   callbackUrl?: string;
@@ -23,6 +24,11 @@ export default async function AppNavBar({
 }: AppNavBarProps) {
   const session = await auth();
   const user = session?.user;
+  const savedDisplayName = session?.accessToken
+    ? await getCurrentUserDisplayName(session.accessToken)
+    : null;
+  const userMenuLabel =
+    savedDisplayName || user?.name || user?.email || "Signed in";
 
   return (
     <AppBar
@@ -42,6 +48,7 @@ export default async function AppNavBar({
         >
           <Box
             component={RouteLoadingLink}
+            disableLoading
             href={APP_CONFIG.routes.home}
             sx={{
               display: "flex",
@@ -77,6 +84,7 @@ export default async function AppNavBar({
           >
             <Button
               component={RouteLoadingLink}
+              disableLoading
               href={APP_CONFIG.routes.home}
               color="inherit"
               sx={{ color: "text.primary", minWidth: { xs: 0, sm: 64 } }}
@@ -85,6 +93,7 @@ export default async function AppNavBar({
             </Button>
             <Button
               component={RouteLoadingLink}
+              disableLoading
               href={APP_CONFIG.routes.search}
               color="inherit"
               sx={{
@@ -96,7 +105,7 @@ export default async function AppNavBar({
               Search
             </Button>
             {user ? (
-              <UserAccountMenu label={user.name || user.email || "Signed in"} />
+              <UserAccountMenu label={userMenuLabel} />
             ) : (
               <HomeSignInButton callbackUrl={callbackUrl} />
             )}

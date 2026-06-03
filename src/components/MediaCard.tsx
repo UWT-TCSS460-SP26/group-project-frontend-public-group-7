@@ -7,8 +7,8 @@ import {
   Chip,
   Typography,
 } from "@mui/material";
-import Link from "next/link";
 import type { MovieSummary, TVSummary } from "@/types/media";
+import RouteLoadingLink from "@/components/RouteLoadingLink";
 import {
   formatDisplayYear,
   formatDisplayYearFromDate,
@@ -84,7 +84,7 @@ export default function MediaCard({
   return (
     <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <CardActionArea
-        component={Link}
+        component={RouteLoadingLink}
         href={href}
         sx={{
           flexGrow: 1,

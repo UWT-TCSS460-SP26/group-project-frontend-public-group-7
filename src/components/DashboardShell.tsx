@@ -46,6 +46,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
             <Tooltip title="Dashboard">
               <Box
                 component={RouteLoadingLink}
+                disableLoading
                 href={APP_CONFIG.routes.dashboard}
                 sx={{
                   display: "flex",
@@ -77,6 +78,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
             <Tooltip title="Search">
               <IconButton
                 component={RouteLoadingLink}
+                disableLoading
                 href={APP_CONFIG.routes.search}
                 color="inherit"
                 aria-label="Search"

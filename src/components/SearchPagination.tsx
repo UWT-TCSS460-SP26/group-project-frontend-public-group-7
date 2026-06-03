@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
+import { safeRouterPrefetch } from "@/lib/safe-router-prefetch";
 
 interface Props {
   q: string;
@@ -49,7 +50,9 @@ export default function SearchPagination({
 
     [page - 1, page + 1]
       .filter((nextPage) => nextPage >= 1 && nextPage <= totalPages)
-      .forEach((nextPage) => router.prefetch(buildPrefetchHref(nextPage)));
+      .forEach((nextPage) =>
+        safeRouterPrefetch(router, buildPrefetchHref(nextPage)),
+      );
   }, [genreId, includeMovies, includeTV, page, q, router, totalPages, year]);
 
   function handleChange(_: React.ChangeEvent<unknown>, value: number) {
