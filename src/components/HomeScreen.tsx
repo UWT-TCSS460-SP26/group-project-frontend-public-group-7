@@ -9,6 +9,7 @@ import {
 import MovieIcon from "@mui/icons-material/Movie";
 
 import HomeSignInButton from "@/components/HomeSignInButton";
+import ExploreGenreBrowser from "@/components/ExploreGenreBrowser";
 import MediaCarousel from "@/components/CarouselTemplate";
 import SearchForm from "@/components/SearchForm";
 import GenreRow from "@/components/GenreRow";
@@ -270,8 +271,26 @@ export default async function HomeScreen() {
           </Box>
         )}
 
-        <Stack spacing={{ xs: 4, md: 5 }}>
-          <Box sx={{ mb: "-30px" }}>
+        <Box
+          aria-hidden
+          sx={{
+            my: { xs: 5, md: 6 },
+            borderTop: "4px solid",
+            borderColor: "primary.main",
+            boxShadow:
+              "0 -1px 0 rgba(255,255,255,0.08), 0 10px 28px rgba(245,197,24,0.16)",
+          }}
+        />
+
+        <Stack spacing={{ xs: 3, md: 4 }}>
+          <Box
+            sx={{
+              flexShrink: 0,
+              position: "relative",
+              zIndex: 2,
+              bgcolor: "background.default",
+            }}
+          >
             <Typography
               variant="h4"
               component="h2"
@@ -292,9 +311,15 @@ export default async function HomeScreen() {
                 : "Popular titles will appear here once the API loads."}
             </Typography>
           ) : (
-            genreRows.map(([genre, items]) => (
-              <GenreRow key={genre} genre={genre} items={items} />
-            ))
+            <Box
+              sx={{
+                height: { md: "calc(100vh - 164px)" },
+                minHeight: { md: 0 },
+                overflow: { md: "hidden" },
+              }}
+            >
+              <ExploreGenreBrowser genreRows={genreRows} />
+            </Box>
           )}
         </Stack>
       </Container>

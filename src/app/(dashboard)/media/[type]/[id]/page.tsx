@@ -66,6 +66,26 @@ function getTitleYear(item: MovieDetail | TVDetail): number | null {
   return item.firstAirDate ? Number(item.firstAirDate.slice(0, 4)) : null;
 }
 
+function isFutureReleaseDate(releaseDate: string | null) {
+  if (!releaseDate) {
+    return false;
+  }
+
+  return releaseDate.slice(0, 10) > new Date().toISOString().slice(0, 10);
+}
+
+function isUnreleasedMovie(movie: MovieDetail | null) {
+  if (!movie) {
+    return false;
+  }
+
+  const status = movie.status?.trim().toLowerCase();
+  return (
+    isFutureReleaseDate(movie.releaseDate) ||
+    Boolean(status && status !== "released")
+  );
+}
+
 function buildSeriesSearchQuery(title: string) {
   return title
     .split(":")[0]
@@ -172,6 +192,7 @@ export default async function MediaDetailPage({
 
   const movieDetail = type === "movie" ? (tmdb as MovieDetail) : null;
   const tvDetail = type === "tv" ? (tmdb as TVDetail) : null;
+  const ratingsLocked = isUnreleasedMovie(movieDetail);
 
   const year =
     formatDisplayYear(movieDetail?.releaseYear) ??
@@ -517,7 +538,22 @@ export default async function MediaDetailPage({
                 )}
               </Box>
 
-              {user ? (
+              {ratingsLocked ? (
+                <Box
+                  sx={{
+                    mt: 1.5,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 0.75,
+                    color: "text.disabled",
+                  }}
+                >
+                  <LockIcon fontSize="small" />
+                  <Typography variant="body2">
+                    Ratings open when this movie is released
+                  </Typography>
+                </Box>
+              ) : user ? (
                 <UserRatingStars tmdbId={Number(id)} mediaType={type} />
               ) : (
                 <Box

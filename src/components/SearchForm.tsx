@@ -18,6 +18,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import TuneIcon from "@mui/icons-material/Tune";
 
 import HomeSignInButton from "@/components/HomeSignInButton";
+import { useMediaRouteLoading } from "@/components/MediaRouteLoadingProvider";
 import { MEDIA_GENRES, getGenreNameById } from "@/lib/media-filters";
 
 interface Props {
@@ -42,6 +43,7 @@ export default function SearchForm({
   signInCallbackUrl,
 }: Props) {
   const router = useRouter();
+  const { showLoadingOverlay } = useMediaRouteLoading();
   const [q, setQ] = useState(initialQ);
   const [includeMovies, setIncludeMovies] = useState(initialMovies);
   const [includeTV, setIncludeTV] = useState(initialTV);
@@ -89,6 +91,7 @@ export default function SearchForm({
     if (includeTV) params.set("tv", "1");
     if (year.trim()) params.set("year", year.trim());
     if (genreId.trim()) params.set("genreId", genreId.trim());
+    showLoadingOverlay();
     router.push(`${destination}?${params}`);
   }
 
