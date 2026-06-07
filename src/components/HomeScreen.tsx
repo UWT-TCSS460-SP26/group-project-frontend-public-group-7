@@ -14,6 +14,7 @@ import MediaCarousel from "@/components/CarouselTemplate";
 import SearchForm from "@/components/SearchForm";
 import GenreRow from "@/components/GenreRow";
 import UserAccountMenu from "@/components/UserAccountMenu";
+import RouteLoadingLink from "@/components/RouteLoadingLink";
 import { type GenreMediaItem } from "@/lib/group-media-by-genre";
 import { getCachedHomePageMedia } from "@/lib/home-page-data";
 import { getMovieRecommendationsFromRatings } from "@/lib/recommendations";
@@ -167,6 +168,22 @@ export default async function HomeScreen() {
                 minHeight: 40,
               }}
             >
+              <Typography
+                component={RouteLoadingLink}
+                disableLoading
+                href={APP_CONFIG.routes.about}
+                variant="body2"
+                sx={{
+                  color: "primary.main",
+                  textDecoration: "none",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  "&:hover": { textDecoration: "underline" },
+                }}
+              >
+                About
+              </Typography>
+
               {user && (
                 <Typography
                   variant="body2"
@@ -176,7 +193,7 @@ export default async function HomeScreen() {
                     display: { xs: "none", md: "block" },
                   }}
                 >
-                  Welcome
+                  Welcome,
                 </Typography>
               )}
 

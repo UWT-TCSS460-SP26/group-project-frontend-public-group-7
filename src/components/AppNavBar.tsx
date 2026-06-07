@@ -105,9 +105,34 @@ export default async function AppNavBar({
               Search
             </Button>
             {user ? (
-              <UserAccountMenu label={userMenuLabel} />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Button
+                  component={RouteLoadingLink}
+                  disableLoading
+                  href={APP_CONFIG.routes.about}
+                  color="inherit"
+                  sx={{ color: "text.primary", minWidth: 0, px: 1 }}
+                >
+                  About
+                </Button>
+                <Typography variant="body2" sx={{ color: "text.secondary", ml: 1 }}>
+                  Welcome,
+                </Typography>
+                <UserAccountMenu label={userMenuLabel} />
+              </Box>
             ) : (
-              <HomeSignInButton callbackUrl={callbackUrl} />
+              <>
+                <Button
+                  component={RouteLoadingLink}
+                  disableLoading
+                  href={APP_CONFIG.routes.about}
+                  color="inherit"
+                  sx={{ color: "text.primary", minWidth: { xs: 0, sm: 64 } }}
+                >
+                  About
+                </Button>
+                <HomeSignInButton callbackUrl={callbackUrl} />
+              </>
             )}
           </Box>
         </Toolbar>
