@@ -27,6 +27,7 @@ export const APP_CONFIG = {
     profile: "/profile",
     userReviews: "/profile/reviews",
     search: "/search",
+    about: "/about",
   },
 } as const;
 
