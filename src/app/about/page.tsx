@@ -78,7 +78,7 @@ export default async function AboutPage() {
                     Auth.js v5
                   </Typography>
                   <Typography variant="body2">
-                    Secure OIDC-compliant authentication integrated with Auth^2, our identity provider, for secure token-based identification.
+                    Secure OIDC-compliant authentication integrated with Auth2, our identity provider, for secure token-based identification.
                   </Typography>
                 </Box>
               </Stack>
@@ -147,7 +147,7 @@ export default async function AboutPage() {
                 "Database Design: Ratings",
                 "Bug Report: Front End",
                 "Render Setup: Front End and Backend",
-                "Identity Management: Configure Auth^2 with frontend",
+                "Identity Management: Configure Auth2 with frontend",
                 "Frontend: Foundation, movie by genre selection grid, search filter, profile page, award system"
               ] 
             },
@@ -167,7 +167,7 @@ export default async function AboutPage() {
               contributions: [
                 "Api Development: TV, Movie, User",
                 "Database Design: Users",
-                "Identity Management: Configure Auth^2",
+                "Identity Management: Configure Auth2",
                 "Frontend: search page and search on nav bar, search filter"
               ] 
             },
