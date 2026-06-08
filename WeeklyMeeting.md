@@ -1,4 +1,4 @@
-# Week 10 Write up
+# Week 10: 
 ## What went well across the ten weeks?
 - As a group, we were able to fully build a fully functional application, that is
   also visually pleasing. All of us were able to complete all of our assigned requirements before each
